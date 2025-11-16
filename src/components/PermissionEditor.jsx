@@ -30,7 +30,8 @@ import {
   Stack,
   Text,
   IconButton,
-  Spinner
+  Spinner,
+  Input
 } from '@chakra-ui/react';
 import { DeleteIcon } from '@chakra-ui/icons';
 
@@ -50,7 +51,8 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
   const [newPermission, setNewPermission] = useState({
     resource: '',
     actions: [],
-    reason: ''
+    reason: '',
+    expiresAt: ''
   });
 
   const RESOURCES = [
@@ -85,7 +87,12 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
       const data = await response.json();
       
       if (data.success) {
-        setPermissions(data.permissions || []);
+        // Parser les actions si elles sont en JSON string
+        const parsed = (data.permissions || []).map(p => ({
+          ...p,
+          actions: Array.isArray(p.actions) ? p.actions : JSON.parse(p.actions || '[]')
+        }));
+        setPermissions(parsed);
       } else {
         toast({
           title: 'Erreur',
@@ -126,7 +133,8 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
         body: JSON.stringify({
           resource: newPermission.resource,
           actions: newPermission.actions,
-          reason: newPermission.reason || 'Ajout de permission'
+          reason: newPermission.reason || '',
+          expiresAt: newPermission.expiresAt || null
         })
       });
 
@@ -144,7 +152,8 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
         setNewPermission({
           resource: '',
           actions: [],
-          reason: ''
+          reason: '',
+          expiresAt: ''
         });
         
         // Recharger les permissions
@@ -175,10 +184,10 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
     }
   };
 
-  const handleDeletePermission = async (permissionId, resource) => {
+  const handleDeletePermission = async (permissionResource) => {
     try {
       setSaving(true);
-      const response = await fetch(`/api/user-permissions/${user.id}/${resource}`, {
+      const response = await fetch(`/api/user-permissions/${user.id}/${permissionResource}`, {
         method: 'DELETE'
       });
 
@@ -220,12 +229,24 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
     }
   };
 
+  const isPermissionExpired = (expiresAt) => {
+    return expiresAt && new Date(expiresAt) < new Date();
+  };
+
+  const formatDate = (date) => {
+    return new Date(date).toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="2xl">
       <ModalOverlay />
-      <ModalContent>
+      <ModalContent maxHeight="90vh" overflowY="auto">
         <ModalHeader>
-          Permissions de {user?.firstName} {user?.lastName}
+          🔐 Permissions de {user?.firstName} {user?.lastName}
         </ModalHeader>
         <ModalCloseButton isDisabled={loading || saving} />
         
@@ -252,54 +273,68 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
               <>
                 {/* Permissions existantes */}
                 <Box>
-                  <FormLabel fontWeight="bold">Permissions actuelles</FormLabel>
+                  <FormLabel fontWeight="bold" fontSize="md">
+                    ✅ Permissions actuelles ({permissions.length})
+                  </FormLabel>
                   {permissions.length === 0 ? (
                     <Alert status="warning" borderRadius="md" fontSize="sm">
                       <AlertIcon />
                       Aucune permission spécifique attribuée
                     </Alert>
                   ) : (
-                    <Table size="sm" variant="striped">
-                      <Thead bg="gray.100">
-                        <Tr>
-                          <Th>Ressource</Th>
-                          <Th>Actions</Th>
-                          <Th>Raison</Th>
-                          <Th width="50px">Action</Th>
-                        </Tr>
-                      </Thead>
-                      <Tbody>
-                        {permissions.map((perm) => (
-                          <Tr key={perm.id}>
-                            <Td fontWeight="medium">
-                              {RESOURCES.find(r => r.value === perm.resource)?.label || perm.resource}
-                            </Td>
-                            <Td>
-                              <HStack spacing={1}>
-                                {(perm.actions || []).map((action) => (
-                                  <Badge key={action} colorScheme="blue" fontSize="xs">
-                                    {ACTIONS.find(a => a.value === action)?.label || action}
-                                  </Badge>
-                                ))}
-                              </HStack>
-                            </Td>
-                            <Td fontSize="sm" color="gray.600">
-                              {perm.reason || '-'}
-                            </Td>
-                            <Td>
-                              <IconButton
-                                icon={<DeleteIcon />}
-                                size="sm"
-                                colorScheme="red"
-                                variant="ghost"
-                                isLoading={saving}
-                                onClick={() => handleDeletePermission(perm.id, perm.resource)}
-                              />
-                            </Td>
+                    <Box overflowX="auto" borderRadius="md" border="1px" borderColor="gray.200">
+                      <Table size="sm" variant="striped">
+                        <Thead bg="gray.100">
+                          <Tr>
+                            <Th>Ressource</Th>
+                            <Th>Actions</Th>
+                            <Th>Raison</Th>
+                            <Th>Expire</Th>
+                            <Th width="50px">Action</Th>
                           </Tr>
-                        ))}
-                      </Tbody>
-                    </Table>
+                        </Thead>
+                        <Tbody>
+                          {permissions.map((perm) => {
+                            const expired = isPermissionExpired(perm.expiresAt);
+                            return (
+                              <Tr key={perm.id} opacity={expired ? 0.6 : 1}>
+                                <Td fontWeight="medium">
+                                  {RESOURCES.find(r => r.value === perm.resource)?.label || perm.resource}
+                                  {expired && (
+                                    <Badge ml={2} colorScheme="red" fontSize="xs">EXPIRÉ</Badge>
+                                  )}
+                                </Td>
+                                <Td>
+                                  <HStack spacing={1}>
+                                    {(perm.actions || []).map((action) => (
+                                      <Badge key={action} colorScheme="blue" fontSize="xs">
+                                        {ACTIONS.find(a => a.value === action)?.label || action}
+                                      </Badge>
+                                    ))}
+                                  </HStack>
+                                </Td>
+                                <Td fontSize="sm" color="gray.600">
+                                  {perm.reason || '-'}
+                                </Td>
+                                <Td fontSize="sm">
+                                  {perm.expiresAt ? formatDate(perm.expiresAt) : '∞'}
+                                </Td>
+                                <Td>
+                                  <IconButton
+                                    icon={<DeleteIcon />}
+                                    size="sm"
+                                    colorScheme="red"
+                                    variant="ghost"
+                                    isLoading={saving}
+                                    onClick={() => handleDeletePermission(perm.resource)}
+                                  />
+                                </Td>
+                              </Tr>
+                            );
+                          })}
+                        </Tbody>
+                      </Table>
+                    </Box>
                   )}
                 </Box>
 
@@ -307,10 +342,12 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
 
                 {/* Ajouter une permission */}
                 <Box>
-                  <FormLabel fontWeight="bold">Ajouter une permission</FormLabel>
+                  <FormLabel fontWeight="bold" fontSize="md">
+                    ➕ Ajouter une permission
+                  </FormLabel>
                   <VStack spacing={4} align="stretch">
                     <FormControl>
-                      <FormLabel fontSize="sm">Ressource</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="medium">Ressource *</FormLabel>
                       <Select
                         placeholder="Sélectionner une ressource"
                         value={newPermission.resource}
@@ -329,8 +366,8 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
                     </FormControl>
 
                     <FormControl>
-                      <FormLabel fontSize="sm">Actions</FormLabel>
-                      <Stack spacing={2}>
+                      <FormLabel fontSize="sm" fontWeight="medium">Actions *</FormLabel>
+                      <Stack spacing={2} pl={2}>
                         {ACTIONS.map((action) => (
                           <Checkbox
                             key={action.value}
@@ -357,9 +394,9 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
                     </FormControl>
 
                     <FormControl>
-                      <FormLabel fontSize="sm">Raison (optionnelle)</FormLabel>
+                      <FormLabel fontSize="sm" fontWeight="medium">Raison (optionnelle)</FormLabel>
                       <Textarea
-                        placeholder="Justification de cette permission..."
+                        placeholder="Ex: Gestion d'un événement spécifique"
                         value={newPermission.reason}
                         onChange={(e) => setNewPermission({
                           ...newPermission,
@@ -367,7 +404,20 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
                         })}
                         isDisabled={saving}
                         size="sm"
-                        rows={3}
+                        rows={2}
+                      />
+                    </FormControl>
+
+                    <FormControl>
+                      <FormLabel fontSize="sm" fontWeight="medium">Date d'expiration (optionnelle)</FormLabel>
+                      <Input
+                        type="date"
+                        value={newPermission.expiresAt}
+                        onChange={(e) => setNewPermission({
+                          ...newPermission,
+                          expiresAt: e.target.value
+                        })}
+                        isDisabled={saving}
                       />
                     </FormControl>
                   </VStack>
@@ -377,7 +427,7 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
           </VStack>
         </ModalBody>
 
-        <ModalFooter>
+        <ModalFooter borderTopWidth="1px">
           <HStack spacing={3}>
             <Button
               variant="ghost"
@@ -392,7 +442,7 @@ export default function PermissionEditor({ isOpen, onClose, user, onPermissionUp
               isLoading={saving}
               isDisabled={!newPermission.resource || newPermission.actions.length === 0}
             >
-              Ajouter Permission
+              ➕ Ajouter Permission
             </Button>
           </HStack>
         </ModalFooter>

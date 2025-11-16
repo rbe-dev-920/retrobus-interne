@@ -20,10 +20,16 @@ import {
   Text,
   Divider,
   Alert,
-  AlertIcon
+  AlertIcon,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel
 } from '@chakra-ui/react';
 import { getAllRoles } from '../lib/permissions';
 import PermissionEditor from './PermissionEditor';
+import PermissionStats from './PermissionStats';
 
 /**
  * PermissionsManager - Gestion des droits individuels
@@ -116,76 +122,96 @@ export default function PermissionsManager() {
   }
 
   return (
-    <VStack spacing={8} align="stretch">
-      {/* Info de débogage */}
-      <Alert status="success" borderRadius="md">
-        <AlertIcon />
-        <Box>
-          <Text fontWeight="bold">✅ {users.length} utilisateur(s) chargé(s)</Text>
-          <Text fontSize="xs" color="gray.600" mt={1}>{debugInfo}</Text>
-        </Box>
-      </Alert>
-      {/* Utilisateurs */}
-      <Card>
-        <CardHeader>
-          <HStack justify="space-between">
-            <Heading size="lg">👥 Utilisateurs</Heading>
-            <Badge colorScheme="blue">{users.length}</Badge>
-          </HStack>
-        </CardHeader>
-        <Divider />
-        <CardBody>
-          <Box overflowX="auto">
-            <Table size="sm" variant="striped">
-              <Thead bg="gray.100">
-                <Tr>
-                  <Th>Nom</Th>
-                  <Th>Email</Th>
-                  <Th>Rôle</Th>
-                  <Th>Accès Interne</Th>
-                  <Th>Actions</Th>
-                </Tr>
-              </Thead>
-              <Tbody>
-                {users.map((user) => (
-                  <Tr key={user.id}>
-                    <Td fontWeight="medium">
-                      {user.firstName} {user.lastName}
-                    </Td>
-                    <Td fontSize="sm">{user.email}</Td>
-                    <Td>
-                      <Badge colorScheme="purple">{user.role}</Badge>
-                    </Td>
-                    <Td>
-                      {user.hasInternalAccess ? (
-                        <Badge colorScheme="green">✅ Oui</Badge>
-                      ) : (
-                        <Badge colorScheme="red">❌ Non</Badge>
-                      )}
-                    </Td>
-                    <Td>
-                      <Button size="sm" colorScheme="blue" onClick={() => handleSelectUser(user)}>
-                        Gérer
-                      </Button>
-                    </Td>
-                  </Tr>
-                ))}
-              </Tbody>
-            </Table>
-          </Box>
-        </CardBody>
-      </Card>
+    <VStack spacing={4} align="stretch">
+      <Tabs colorScheme="blue" variant="enclosed">
+        <TabList>
+          <Tab>📊 Statistiques</Tab>
+          <Tab>👥 Gestion des utilisateurs</Tab>
+        </TabList>
 
-      {/* Info */}
-      <Alert status="info" borderRadius="md">
-        <AlertIcon />
-        <Box>
-          <Text fontWeight="bold" fontSize="sm">💡 Utilisateurs du système</Text>
-          <Text fontSize="xs" color="gray.700" mt={1}>
-            Affichage de tous les utilisateurs actifs du système
-          </Text>
-        </Box>
-      </Alert>
+        <TabPanels>
+          {/* Tab 1: Statistiques */}
+          <TabPanel>
+            <PermissionStats />
+          </TabPanel>
+
+          {/* Tab 2: Gestion des utilisateurs */}
+          <TabPanel>
+            <VStack spacing={6} align="stretch">
+              {/* Info de débogage */}
+              <Alert status="success" borderRadius="md">
+                <AlertIcon />
+                <Box>
+                  <Text fontWeight="bold">✅ {users.length} utilisateur(s) chargé(s)</Text>
+                  <Text fontSize="xs" color="gray.600" mt={1}>{debugInfo}</Text>
+                </Box>
+              </Alert>
+              
+              {/* Utilisateurs */}
+              <Card>
+                <CardHeader>
+                  <HStack justify="space-between">
+                    <Heading size="lg">👥 Utilisateurs</Heading>
+                    <Badge colorScheme="blue">{users.length}</Badge>
+                  </HStack>
+                </CardHeader>
+                <Divider />
+                <CardBody>
+                  <Box overflowX="auto">
+                    <Table size="sm" variant="striped">
+                      <Thead bg="gray.100">
+                        <Tr>
+                          <Th>Nom</Th>
+                          <Th>Email</Th>
+                          <Th>Rôle</Th>
+                          <Th>Accès Interne</Th>
+                          <Th>Actions</Th>
+                        </Tr>
+                      </Thead>
+                      <Tbody>
+                        {users.map((user) => (
+                          <Tr key={user.id}>
+                            <Td fontWeight="medium">
+                              {user.firstName} {user.lastName}
+                            </Td>
+                            <Td fontSize="sm">{user.email}</Td>
+                            <Td>
+                              <Badge colorScheme="purple">{user.role}</Badge>
+                            </Td>
+                            <Td>
+                              {user.hasInternalAccess ? (
+                                <Badge colorScheme="green">✅ Oui</Badge>
+                              ) : (
+                                <Badge colorScheme="red">❌ Non</Badge>
+                              )}
+                            </Td>
+                            <Td>
+                              <Button size="sm" colorScheme="blue" onClick={() => handleSelectUser(user)}>
+                                Gérer
+                              </Button>
+                            </Td>
+                          </Tr>
+                        ))}
+                      </Tbody>
+                    </Table>
+                  </Box>
+                </CardBody>
+              </Card>
+
+              {/* Info */}
+              <Alert status="info" borderRadius="md">
+                <AlertIcon />
+                <Box>
+                  <Text fontWeight="bold" fontSize="sm">💡 Utilisateurs du système</Text>
+                  <Text fontSize="xs" color="gray.700" mt={1}>
+                    Affichage de tous les utilisateurs actifs du système
+                  </Text>
+                </Box>
+              </Alert>
+            </VStack>
+          </TabPanel>
+        </TabPanels>
+      </Tabs>
 
       {/* Permission Editor Modal */}
       {selectedUser && (
