@@ -28,6 +28,7 @@ import {
   TabPanel
 } from '@chakra-ui/react';
 import { getAllRoles } from '../lib/permissions';
+import { fetchJson } from '../apiClient';
 import PermissionEditor from './PermissionEditor';
 import PermissionStats from './PermissionStats';
 import MyRBEPermissionsManager from './MyRBEPermissionsManager';
@@ -52,8 +53,7 @@ export default function PermissionsManager() {
       setLoading(true);
       setDebugInfo('Chargement...');
       
-      const response = await fetch('/api/site-users');
-      const data = await response.json();
+      const data = await fetchJson('/api/site-users');
       
       setDebugInfo(`✅ Reçu ${Array.isArray(data) ? data.length : 0} utilisateurs`);
       

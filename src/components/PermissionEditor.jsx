@@ -34,6 +34,7 @@ import {
   Input
 } from '@chakra-ui/react';
 import { DeleteIcon } from '@chakra-ui/icons';
+import { fetchJson } from '../apiClient';
 
 /**
  * PermissionEditor - Modal pour éditer les permissions individuelles d'un utilisateur

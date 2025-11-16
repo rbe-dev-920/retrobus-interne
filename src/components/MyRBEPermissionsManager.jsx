@@ -28,6 +28,7 @@ import {
   InputLeftElement
 } from '@chakra-ui/react';
 import { SearchIcon } from '@chakra-ui/icons';
+import { fetchJson } from '../apiClient';
 
 // Les cartes MyRBE qui nécessitent une autorisation
 const MYRBE_CARDS = [
@@ -68,13 +69,11 @@ export default function MyRBEPermissionsManager() {
       setLoading(true);
 
       // Charger les utilisateurs
-      const usersRes = await fetch('/api/site-users');
-      const usersData = await usersRes.json();
+      const usersData = await fetchJson('/api/site-users');
       setUsers(Array.isArray(usersData) ? usersData : []);
 
       // Charger les permissions
-      const permsRes = await fetch('/api/user-permissions');
-      const permsData = await permsRes.json();
+      const permsData = await fetchJson('/api/user-permissions');
 
       // Organiser les permissions par userId et resource
       const permsMap = {};
@@ -116,13 +115,9 @@ export default function MyRBEPermissionsManager() {
 
       if (hasAccess) {
         // Supprimer la permission via DELETE /api/user-permissions/:userId/:resource
-        const res = await fetch(`/api/user-permissions/${userId}/${cardId}`, {
+        await fetchJson(`/api/user-permissions/${userId}/${cardId}`, {
           method: 'DELETE'
         });
-
-        if (!res.ok) {
-          throw new Error('Erreur lors de la suppression');
-        }
 
         // Mettre à jour l'état local
         setPermissions(prev => ({
@@ -140,20 +135,14 @@ export default function MyRBEPermissionsManager() {
         });
       } else {
         // Ajouter la permission via POST /api/user-permissions/:userId
-        const res = await fetch(`/api/user-permissions/${userId}`, {
+        const data = await fetchJson(`/api/user-permissions/${userId}`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+          body: {
             resource: cardId,
             actions: ['READ', 'CREATE', 'EDIT', 'DELETE']
-          })
+          }
         });
 
-        if (!res.ok) {
-          throw new Error('Erreur lors de la création');
-        }
-
-        const data = await res.json();
         const newPerm = data.permission || data;
 
         // Mettre à jour l'état local
@@ -197,28 +186,24 @@ export default function MyRBEPermissionsManager() {
 
         if (grantAccess && !hasAccess) {
           // Ajouter
-          const res = await fetch(`/api/user-permissions/${userId}`, {
+          const data = await fetchJson(`/api/user-permissions/${userId}`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: {
               resource: card.id,
               actions: ['READ', 'CREATE', 'EDIT', 'DELETE']
-            })
+            }
           });
-          if (res.ok) {
-            const data = await res.json();
-            const newPerm = data.permission || data;
-            setPermissions(prev => ({
-              ...prev,
-              [userId]: {
-                ...prev[userId],
-                [card.id]: newPerm
-              }
-            }));
-          }
+          const newPerm = data.permission || data;
+          setPermissions(prev => ({
+            ...prev,
+            [userId]: {
+              ...prev[userId],
+              [card.id]: newPerm
+            }
+          }));
         } else if (!grantAccess && hasAccess) {
           // Retirer
-          await fetch(`/api/user-permissions/${userId}/${card.id}`, {
+          await fetchJson(`/api/user-permissions/${userId}/${card.id}`, {
             method: 'DELETE'
           });
           setPermissions(prev => ({
