@@ -26,7 +26,6 @@ import { API_BASE_URL } from '../api/config';
 import { displayNameFromUser, formatMemberLabel } from '../lib/names';
 import { useUser } from '../context/UserContext';
 import EmailTemplateManager from '../components/EmailTemplateManager';
-import PermissionsManager from '../components/PermissionsManager';
 import TemplateManagement from '../components/TemplateManagement';
 import {
   ENDPOINTS,
@@ -1570,9 +1569,6 @@ export default function SiteManagement() {
             <Tab>🔐 Accès aux Sites</Tab>
             <Tab>⚙️ Configuration</Tab>
             <Tab>📄 Modèles de Documents</Tab>
-            {(roles.includes('ADMIN') || roles.includes('MANAGER') || roles.includes('OPERATOR')) && (
-              <Tab>🛡️ Permissions des Utilisateurs</Tab>
-            )}
           </TabList>
 
           <TabPanels>
@@ -1729,18 +1725,6 @@ export default function SiteManagement() {
                 <TemplateManagementInline />
               </VStack>
             </TabPanel>
-
-            {(user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'OPERATOR') && (
-              <TabPanel>
-                <VStack spacing={6} align="stretch">
-                  <Box>
-                    <Heading size="lg" mb={2}>🛡️ Gestion des Rôles & Permissions</Heading>
-                    <Text color="gray.600">Gérez les rôles principaux et les permissions individuelles de chaque utilisateur</Text>
-                  </Box>
-                  <PermissionsManager />
-                </VStack>
-              </TabPanel>
-            )}
           </TabPanels>
         </Tabs>
 

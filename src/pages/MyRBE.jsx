@@ -7,7 +7,13 @@ import {
   HStack,
   Box,
   useColorModeValue,
-  Divider
+  Divider,
+  Tabs,
+  TabList,
+  TabPanels,
+  Tab,
+  TabPanel,
+  Heading
 } from "@chakra-ui/react";
 import { Link as RouterLink } from "react-router-dom";
 import {
@@ -18,6 +24,7 @@ import { useUser } from "../context/UserContext";
 import { canAccess, RESOURCES } from "../lib/permissions";
 import PageLayout from '../components/Layout/PageLayout';
 import ModernCard from '../components/Layout/ModernCard';
+import PermissionsManager from '../components/PermissionsManager';
 
 const cards = [
   {
@@ -169,6 +176,14 @@ export default function MyRBE() {
       ]}
     >
       <VStack spacing={8} align="stretch">
+        {/* Section Permissions - Visible seulement pour ADMIN/MANAGER/OPERATOR */}
+        {(roles?.includes('ADMIN') || roles?.includes('MANAGER') || roles?.includes('OPERATOR')) && (
+          <Box bg={useColorModeValue('white', 'gray.800')} borderRadius="md" p={6} borderWidth="1px" borderColor={useColorModeValue('gray.200', 'gray.700')}>
+            <Heading size="md" mb={4}>🛡️ Gestion des Permissions</Heading>
+            <PermissionsManager />
+          </Box>
+        )}
+
         {/* Grille des fonctionnalités */}
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
           {visibleCards.map((card) => (
