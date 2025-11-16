@@ -31,6 +31,16 @@ import ModernCard from '../components/Layout/ModernCard';
 import PermissionsManager from '../components/PermissionsManager';
 
 const cards = [
+  // Profil utilisateur
+  {
+    title: "Mon Profil",
+    description: "Informations personnelles et permissions",
+    to: "/dashboard/profile",
+    icon: FiUsers,
+    color: "blue",
+    category: "general"
+  },
+
   // Accès général
   {
     title: "RétroDemandes",
