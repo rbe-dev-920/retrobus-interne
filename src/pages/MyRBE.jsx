@@ -18,7 +18,7 @@ import {
 import { Link as RouterLink } from "react-router-dom";
 import {
   FiDollarSign, FiPlus, FiCalendar, FiUsers, FiPackage,
-  FiMail, FiGlobe, FiInbox, FiLifeBuoy, FiTool
+  FiMail, FiGlobe, FiInbox, FiLifeBuoy, FiTool, FiShield
 } from "react-icons/fi";
 import { useUser } from "../context/UserContext";
 import { canAccess, RESOURCES } from "../lib/permissions";
@@ -99,6 +99,14 @@ const cards = [
     color: "pink"
   },
   {
+    title: "Gestion des Autorisations",
+    description: "Rôles et permissions des utilisateurs",
+    to: "/dashboard/myrbe/permissions",
+    icon: FiShield,
+    color: "red",
+    requiredRole: ['ADMIN', 'MANAGER', 'OPERATOR']
+  },
+  {
     title: "Retromail",
     description: "Messagerie interne de l'équipe",
     to: "/retromail",
@@ -119,6 +127,15 @@ export default function MyRBE() {
   const alertBorder = useColorModeValue("blue.500", "blue.300");
   const { user, roles, customPermissions } = useUser();
   const userRole = roles?.[0] || 'MEMBER';  // Utiliser le premier rôle du tableau
+  const [showPermissions, setShowPermissions] = React.useState(false);
+  
+  // Détecter si c'est demandé via URL
+  const location = React.useMemo(() => window.location.pathname, []);
+  React.useEffect(() => {
+    if (location.includes('permissions')) {
+      setShowPermissions(true);
+    }
+  }, [location]);
 
   // Filtrer les cartes en fonction du rôle
   let visibleCards = cards;
@@ -176,15 +193,26 @@ export default function MyRBE() {
       ]}
     >
       <VStack spacing={8} align="stretch">
-        {/* Section Permissions - Visible seulement pour ADMIN/MANAGER/OPERATOR */}
-        {(roles?.includes('ADMIN') || roles?.includes('MANAGER') || roles?.includes('OPERATOR')) && (
-          <Box bg={useColorModeValue('white', 'gray.800')} borderRadius="md" p={6} borderWidth="1px" borderColor={useColorModeValue('gray.200', 'gray.700')}>
-            <Heading size="md" mb={4}>🛡️ Gestion des Permissions</Heading>
-            <PermissionsManager />
+        {/* Section Permissions - Affiche PermissionsManager quand requis */}
+        {showPermissions && (roles?.includes('ADMIN') || roles?.includes('MANAGER') || roles?.includes('OPERATOR')) && (
+          <Box>
+            <Button 
+              mb={4}
+              variant="ghost" 
+              onClick={() => setShowPermissions(false)}
+              size="sm"
+            >
+              ← Retour à MyRBE
+            </Button>
+            <Box bg={useColorModeValue('white', 'gray.800')} borderRadius="md" p={6} borderWidth="1px" borderColor={useColorModeValue('gray.200', 'gray.700')}>
+              <Heading size="md" mb={4}>🛡️ Gestion des Autorisations</Heading>
+              <PermissionsManager />
+            </Box>
           </Box>
         )}
 
-        {/* Grille des fonctionnalités */}
+        {/* Grille des fonctionnalités - Masquée si permissions affichées */}
+        {!showPermissions && (
         <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
           {visibleCards.map((card) => (
             <ModernCard
@@ -194,12 +222,14 @@ export default function MyRBE() {
               icon={card.icon}
               color={card.color}
               badge={card.badge}
-              as={RouterLink}
-              to={card.to}
-              onClick={() => {}}
+              as={card.title === 'Gestion des Autorisations' ? 'button' : RouterLink}
+              to={card.title !== 'Gestion des Autorisations' ? card.to : undefined}
+              onClick={card.title === 'Gestion des Autorisations' ? () => setShowPermissions(true) : undefined}
             />
           ))}
         </SimpleGrid>
+        )}
+        
         
         {/* Section d'aide */}
         <VStack spacing={6}>
