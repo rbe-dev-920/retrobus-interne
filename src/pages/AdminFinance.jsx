@@ -1136,6 +1136,27 @@ const AdminFinance = () => {
         return;
       }
 
+      // Charger les lignes du devis
+      let devisLinesTr = '';
+      try {
+        const currentDevisId = editingDocument?.id || 'temp-' + Date.now();
+        const linesResponse = await fetchJson(`/api/devis-lines/${currentDevisId}`);
+        const lines = Array.isArray(linesResponse) ? linesResponse : [];
+        
+        if (lines.length > 0) {
+          devisLinesTr = lines.map(line => `
+            <tr>
+              <td class="num">${line.quantity}</td>
+              <td class="desc">${line.description}</td>
+              <td class="num">${line.unitPrice.toFixed(2)} €</td>
+              <td class="num">${line.totalPrice.toFixed(2)} €</td>
+            </tr>
+          `).join('');
+        }
+      } catch (e) {
+        console.warn('⚠️ Impossible de charger les lignes:', e.message);
+      }
+
       // Préparer les données pour le preview avec tous les placeholders
       const previewData = {
         NUM_DEVIS: docForm.number,
@@ -1152,6 +1173,7 @@ const AdminFinance = () => {
         NOTES: docForm.notes || '',
         LOGO_BIG: selectedTemplate.logoBig || '',
         LOGO_SMALL: selectedTemplate.logoSmall || '',
+        DEVIS_LINES_TR: devisLinesTr
       };
 
       setTemplatePreviewData({

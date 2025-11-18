@@ -32,15 +32,30 @@ export default function QuoteTemplatePreview({ template, data }) {
   let html = template.htmlContent;
   
   if (data) {
-    // Replace {{PLACEHOLDER}} style variables
+    // Replace {{PLACEHOLDER}} style variables (skip DEVIS_LINES_TR for now, it's HTML)
     Object.entries(data).forEach(([key, value]) => {
+      // Skip raw HTML placeholders
+      if (key === 'DEVIS_LINES_TR') return;
+      
       const placeholder = `{{${key}}}`;
       const regex = new RegExp(placeholder, 'g');
-      html = html.replace(regex, value || '');
+      // Escape HTML for text values
+      const escapedValue = String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+      html = html.replace(regex, escapedValue);
     });
+    
+    // Replace DEVIS_LINES_TR as raw HTML
+    if (data.DEVIS_LINES_TR) {
+      html = html.replace(/{{DEVIS_LINES_TR}}/g, data.DEVIS_LINES_TR);
+    }
   }
 
-  // Also replace logo placeholders if present
+  // Also replace logo placeholders if present (they are already base64)
   if (template.logoBig) {
     html = html.replace(/{{LOGO_BIG}}/g, `data:image/png;base64,${template.logoBig}`);
   }
