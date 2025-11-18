@@ -4416,22 +4416,30 @@ const AdminFinance = () => {
           <ModalOverlay />
           <ModalContent maxH="90vh" overflowY="auto">
             <ModalHeader>
-              Aperçu du document: {templatePreviewData?.templateName}
+              <VStack align="start" spacing={0}>
+                <Text>📄 Aperçu du document</Text>
+                <Text fontSize="sm" color="gray.600" fontWeight="normal">{templatePreviewData?.templateName}</Text>
+              </VStack>
             </ModalHeader>
             <ModalCloseButton />
             <ModalBody>
               {templatePreviewData && selectedTemplate && (
                 <VStack spacing={4} align="stretch">
-                  <Alert status="info">
+                  <Alert status="info" borderRadius="md">
                     <AlertIcon />
                     <Box>
-                      <Text fontWeight="bold">Aperçu du rendu</Text>
-                      <Text fontSize="sm">Les variables {{PLACEHOLDERS}} ont été remplacées avec vos données.</Text>
+                      <Text fontWeight="bold">Aperçu du rendu final</Text>
+                      <Text fontSize="sm">Les variables {{PLACEHOLDERS}} ont été remplacées avec vos données. Vous pouvez imprimer ou exporter en PDF.</Text>
                     </Box>
                   </Alert>
 
                   {/* Template Preview Component */}
-                  <Box borderWidth="1px" borderRadius="md" p={4} bg="white">
+                  <Box 
+                    borderWidth="1px" 
+                    borderRadius="md" 
+                    bg="white"
+                    boxShadow="sm"
+                  >
                     <QuoteTemplatePreview 
                       template={selectedTemplate} 
                       data={templatePreviewData.data}
@@ -4446,14 +4454,14 @@ const AdminFinance = () => {
                   Fermer
                 </Button>
                 <Button 
-                  colorScheme="blue"
+                  colorScheme="orange"
+                  leftIcon={<FiDownload />}
                   onClick={() => {
-                    // Ouvrir pour impression
+                    // Déclencher l'impression
                     window.print();
                   }}
-                  leftIcon={<FiDownload />}
                 >
-                  🖨️ Imprimer
+                  🖨️ Imprimer / Exporter en PDF
                 </Button>
               </HStack>
             </ModalFooter>
