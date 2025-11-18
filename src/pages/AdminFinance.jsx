@@ -23,6 +23,7 @@ import {
   FiDatabase, FiShield, FiAlertTriangle, FiInfo, FiSave, FiRotateCcw, FiCheckCircle
 } from "react-icons/fi";
 import QuoteTemplatePreview from '../components/QuoteTemplatePreview';
+import DevisLinesManager from '../components/DevisLinesManager';
 
 
 const AdminFinance = () => {
@@ -157,6 +158,14 @@ const AdminFinance = () => {
     paymentMethod: '',
     paymentDate: '',
     amountPaid: ''
+  });
+  
+  // Lignes de devis
+  const [devisLines, setDevisLines] = useState([]); // [{id, quantity, description, unitPrice, totalPrice}]
+  const [newLine, setNewLine] = useState({
+    quantity: 1,
+    description: '',
+    unitPrice: 0
   });
   
   // Mode génération document: 'manual' | 'template' | 'pdf'
@@ -3452,6 +3461,18 @@ const AdminFinance = () => {
                     rows={1}
                   />
                 </FormControl>
+
+                {/* Lignes du Devis - Nouveau! */}
+                <Divider />
+                <DevisLinesManager 
+                  devisId={editingDocument?.id || 'temp-' + Date.now()} 
+                  onTotalChange={(total) => {
+                    setDocForm(prev => ({
+                      ...prev,
+                      amount: total.toFixed(2)
+                    }));
+                  }}
+                />
 
                 {/* Section Génération - Toggleable */}
                 <Box bg="amber.50" p={4} borderRadius="md" borderLeft="4px solid" borderColor="amber.500">
