@@ -14,6 +14,7 @@ import FinanceDashboard from "../components/Finance/Dashboard";
 import FinanceTransactions from "../components/Finance/Transactions";
 import FinanceScheduledOps from "../components/Finance/ScheduledOperations";
 import FinanceQuotes from "../components/Finance/Quotes";
+import FinanceInvoicing from "../components/Finance/Invoicing";
 import FinanceReports from "../components/Finance/Reports";
 import FinanceSettings from "../components/Finance/Settings";
 
@@ -38,7 +39,7 @@ const FinanceNew = () => {
     { id: "dashboard", label: "📊 Tableau de bord", icon: FiBarChart, color: "blue" },
     { id: "transactions", label: "💳 Transactions", icon: FiCreditCard, color: "green" },
     { id: "scheduled", label: "📅 Opérations planifiées", icon: FiCalendar, color: "purple" },
-    { id: "quotes", label: "📄 Devis", icon: FiFileText, color: "orange" },
+    { id: "invoicing", label: "📄 Facturation", icon: FiFileText, color: "orange" },
     { id: "reports", label: "📈 Rapports", icon: FiTrendingUp, color: "teal" },
     { id: "settings", label: "⚙️ Paramètres", icon: FiSettings, color: "gray" }
   ];
@@ -52,8 +53,8 @@ const FinanceNew = () => {
         return <FinanceTransactions />;
       case "scheduled":
         return <FinanceScheduledOps />;
-      case "quotes":
-        return <FinanceQuotes />;
+      case "invoicing":
+        return <FinanceInvoicing />;
       case "reports":
         return <FinanceReports />;
       case "settings":
