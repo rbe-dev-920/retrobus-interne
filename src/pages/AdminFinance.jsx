@@ -2050,7 +2050,7 @@ const AdminFinance = () => {
               cursor="pointer"
               onClick={() => setShowBalanceConfig(!showBalanceConfig)}
             >
-              {isBalanceLocked ? <Icon as={FiLock} mr={1} /> : <Icon as={FiUnlock} mr={1} />}
+              {isBalanceLocked ? <FiLock style={{marginRight: '0.5rem', display: 'inline-block'}} /> : <FiUnlock style={{marginRight: '0.5rem', display: 'inline-block'}} />}
               Solde: {formatCurrency(stats.balance)}
             </Badge>
           </HStack>
