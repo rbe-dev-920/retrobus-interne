@@ -1,76 +1,152 @@
-// Prefer same-origin relative calls in prod to avoid CORS; use env or localhost only in local dev
-const isLocal = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || window.location.port === '5173');
-// In local dev, default to relative to go through Vite proxy (configured to 3001) unless explicitly overridden
+/**
+ * apiClient.js - CLIENT HTTP CENTRALISÉ
+ * ✅ Utilise authService comme source unique pour le token
+ * ✅ Tous les appels API passent par ici
+ */
+
+import { tokenManager, withAuthHeader } from './api/authService.js';
+
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+const isLocal = typeof window !== 'undefined' && (
+  window.location.hostname === 'localhost' ||
+  window.location.hostname === '127.0.0.1' ||
+  window.location.port === '5173'
+);
+
 const API_BASE_URL = (
   isLocal
     ? (import.meta.env?.VITE_API_URL || '')
     : ''
 ).replace(/\/$/, '');
 
-function buildAuthHeaders() {
-  try {
-    const token =
-      localStorage.getItem('accessToken') ||
-      localStorage.getItem('token') ||
-      localStorage.getItem('jwt');
-    return token ? { Authorization: `Bearer ${token}` } : {};
-  } catch {
-    return {};
+// ============================================================================
+// HELPERS
+// ============================================================================
+
+const parseResponse = async (response) => {
+  if (response.status === 204) return null;
+  const contentType = response.headers.get('content-type');
+  if (!contentType?.includes('application/json')) {
+    const text = await response.text().catch(() => '');
+    throw new Error(`Non-JSON: ${response.status}: ${text?.slice(0, 200)}`);
   }
-}
-
-export const fetchJson = async (path, options = {}) => {
-  const url = `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
-
-  // Normalize headers and body so JSON requests always have the right Content-Type
-  const headers = {
-    Accept: 'application/json',
-    ...buildAuthHeaders(),
-    ...(options.headers || {}),
-  };
-
-  // Case-insensitive header lookup helper
-  const hasHeader = (name) => {
-    const lower = name.toLowerCase();
-    for (const key of Object.keys(headers)) {
-      if (key.toLowerCase() === lower) return true;
-    }
-    return false;
-  };
-
-  let body = options.body;
-
-  // If body is a plain object (not FormData/Blob/etc.), stringify and set JSON header
-  const isPlainObject = (v) => (
-    v && typeof v === 'object' &&
-    !(v instanceof FormData) &&
-    !(v instanceof Blob) &&
-    !(v instanceof ArrayBuffer) &&
-    !(v instanceof URLSearchParams)
-  );
-
-  if (isPlainObject(body)) {
-    body = JSON.stringify(body);
-    if (!hasHeader('Content-Type')) headers['Content-Type'] = 'application/json';
-  } else if (typeof body === 'string') {
-    // If caller already stringified but forgot header, add it
-    if (!hasHeader('Content-Type')) headers['Content-Type'] = 'application/json';
-  }
-
-  const res = await fetch(url, {
-    credentials: 'include',
-    headers,
-    ...options,
-    ...(body !== undefined ? { body } : {}),
-  });
-
-  if (res.status === 404) return { notFound: true };
-  if (res.status === 204) return null;
-  if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`HTTP ${res.status} ${res.statusText} - ${text}`);
-  }
-  return res.json();
+  return response.json();
 };
 
-export { API_BASE_URL };
+const buildUrl = (path) => {
+  const cleanPath = String(path || '').replace(/^\/+/, '/');
+  return `${API_BASE_URL}${cleanPath}`;
+};
+
+const buildHeaders = (customHeaders = {}) => {
+  const token = tokenManager.getToken();
+  return withAuthHeader({
+    'Accept': 'application/json',
+    ...customHeaders
+  }, token);
+};
+
+const handleHttpError = (response) => {
+  if (response.status === 401) {
+    console.warn('🔒 Unauthorized - clearing auth');
+    tokenManager.setToken(null);
+    window.location.href = '/login';
+    throw new Error('Unauthorized');
+  }
+  if (response.status === 403) throw new Error('Forbidden');
+  if (response.status === 404) return { notFound: true };
+  throw new Error(`HTTP ${response.status}`);
+};
+
+// ============================================================================
+// API CLIENT
+// ============================================================================
+
+export const apiClient = {
+  async get(path, options = {}) {
+    const url = buildUrl(path);
+    const headers = buildHeaders(options.headers);
+    console.log(`🔗 GET ${url}`);
+    try {
+      const response = await fetch(url, { method: 'GET', headers, credentials: 'include', ...options });
+      if (!response.ok) return handleHttpError(response);
+      return await parseResponse(response);
+    } catch (error) {
+      console.error(`❌ GET ${path}:`, error.message);
+      throw error;
+    }
+  },
+
+  async post(path, body, options = {}) {
+    const url = buildUrl(path);
+    const headers = buildHeaders({ 'Content-Type': 'application/json', ...options.headers });
+    console.log(`📤 POST ${url}`, body);
+    try {
+      const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body), credentials: 'include', ...options });
+      if (!response.ok) return handleHttpError(response);
+      return await parseResponse(response);
+    } catch (error) {
+      console.error(`❌ POST ${path}:`, error.message);
+      throw error;
+    }
+  },
+
+  async patch(path, body, options = {}) {
+    const url = buildUrl(path);
+    const headers = buildHeaders({ 'Content-Type': 'application/json', ...options.headers });
+    console.log(`🔄 PATCH ${url}`, body);
+    try {
+      const response = await fetch(url, { method: 'PATCH', headers, body: JSON.stringify(body), credentials: 'include', ...options });
+      if (!response.ok) return handleHttpError(response);
+      return await parseResponse(response);
+    } catch (error) {
+      console.error(`❌ PATCH ${path}:`, error.message);
+      throw error;
+    }
+  },
+
+  async delete(path, options = {}) {
+    const url = buildUrl(path);
+    const headers = buildHeaders(options.headers);
+    console.log(`🗑️ DELETE ${url}`);
+    try {
+      const response = await fetch(url, { method: 'DELETE', headers, credentials: 'include', ...options });
+      if (!response.ok) return handleHttpError(response);
+      return await parseResponse(response);
+    } catch (error) {
+      console.error(`❌ DELETE ${path}:`, error.message);
+      throw error;
+    }
+  },
+
+  async upload(path, formData, options = {}) {
+    const url = buildUrl(path);
+    const token = tokenManager.getToken();
+    const headers = withAuthHeader({}, token);
+    console.log(`📦 UPLOAD ${url}`);
+    try {
+      const response = await fetch(url, { method: 'POST', headers, body: formData, credentials: 'include', ...options });
+      if (!response.ok) return handleHttpError(response);
+      return await parseResponse(response);
+    } catch (error) {
+      console.error(`❌ UPLOAD ${path}:`, error.message);
+      throw error;
+    }
+  }
+};
+
+// Legacy support
+export const fetchJson = async (path, options = {}) => {
+  const method = options.method?.toUpperCase() || 'GET';
+  if (method === 'GET') return apiClient.get(path, options);
+  if (method === 'POST') return apiClient.post(path, options.body, options);
+  if (method === 'PATCH') return apiClient.patch(path, options.body, options);
+  if (method === 'DELETE') return apiClient.delete(path, options);
+  throw new Error(`Unsupported: ${method}`);
+};
+
+export { API_BASE_URL, tokenManager };
+export default apiClient;

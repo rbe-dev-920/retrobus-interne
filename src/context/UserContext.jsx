@@ -1,53 +1,68 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { normalizeRole as normRole } from '../lib/roles';
 import ForcePasswordChange from '../components/ForcePasswordChange';
+import { tokenManager, StorageManager, validateSession } from '../api/authService.js';
 
 const UserContext = createContext(null);
 
 export function UserProvider({ children }) {
-  const [token, setToken] = useState(() => localStorage.getItem('token') || '');
+  // Hydrate depuis authService qui lui-même lit depuis localStorage
+  const [token, setToken] = useState(() => {
+    tokenManager.hydrate();
+    return tokenManager.getToken() || '';
+  });
+  
   const [user, setUser] = useState(() => {
     const raw = localStorage.getItem('user');
     return raw ? JSON.parse(raw) : null;
   });
+  
   const [mustChangePassword, setMustChangePassword] = useState(false);
-
-  // NEW: état de contrôle session
   const [sessionChecked, setSessionChecked] = useState(false);
   const isAuthenticated = !!token;
 
   // Member profile (self)
   const [member, setMember] = useState(null);
   const [memberLoading, setMemberLoading] = useState(false);
-  const [memberError, setMemberError] = useState(null); // 404, 401, 500, 'network', etc.
-  const [memberApiBase, setMemberApiBase] = useState(null); // null => relative same-origin, string => absolute base
+  const [memberError, setMemberError] = useState(null);
+  const [memberApiBase, setMemberApiBase] = useState(null);
   const lastMemberFetchRef = useRef(0);
 
-  // Individual permissions (custom per-user permissions)
+  // Individual permissions
   const [customPermissions, setCustomPermissions] = useState(null);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
 
+  // ✅ Synchroniser le state local avec authService
   useEffect(() => {
-    if (token) localStorage.setItem('token', token);
-    else localStorage.removeItem('token');
-  }, [token]);
+    const unsub = tokenManager.subscribe((newToken) => {
+      setToken(newToken || '');
+    });
+    return unsub;
+  }, []);
 
   useEffect(() => {
     if (user) localStorage.setItem('user', JSON.stringify(user));
     else localStorage.removeItem('user');
   }, [user]);
 
+  // ✅ Wrapper pour setToken qui met aussi à jour authService
+  const updateToken = (newToken) => {
+    tokenManager.setToken(newToken);
+    setToken(newToken || '');
+  };
+
   const logout = () => {
+    tokenManager.setToken(null);
     setToken('');
     setUser(null);
     setMember(null);
     setMemberError(null);
     setMemberApiBase(null);
-    localStorage.removeItem('token');
     localStorage.removeItem('user');
+    StorageManager.clearAppCache();
   };
 
-  // NEW: revalidation stricte auprès du serveur
+  // ✅ Valider la session via authService
   const ensureSession = async () => {
     if (!token) {
       setUser(null);
@@ -55,47 +70,15 @@ export function UserProvider({ children }) {
       return false;
     }
 
-    // Dev mode support: si pas d'API configurée OU token local, ne pas invalider la session
-    const base = (import.meta?.env?.VITE_API_URL || '').replace(/\/+$/, '');
-    const isLocalDevToken = String(token).startsWith('local-dev-token-');
-    if (!base || isLocalDevToken) {
-      // On fait confiance au stockage local pour la session de dev
-      setSessionChecked(true);
-      return true;
-    }
+    const isValid = await validateSession(token);
+    setSessionChecked(true);
 
-    try {
-      const res = await fetch(`${base}/api/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      const disabled = data?.disabled === true || data?.active === false || data?.status === 'DISABLED';
-      if (disabled) {
-        logout();
-        setSessionChecked(true);
-        return false;
-      }
-
-      // Normalisation du profil utilisateur pour toute l'appli
-      const normalized = (() => {
-        const username = data?.username || data?.matricule || data?.login || (data?.email ? String(data.email).split('@')[0] : '');
-        const prenom = data?.prenom || data?.firstName || data?.given_name || '';
-        const nom = data?.nom || data?.lastName || data?.family_name || '';
-        return { ...data, username, prenom, nom };
-      })();
-
-      setUser(normalized);
-      setMustChangePassword(!!data.mustChangePassword);
-      setSessionChecked(true);
-      return true;
-    } catch (e) {
-      // En cas d'échec de vérification serveur, ne casse pas la session si on est en dev sans API
+    if (!isValid) {
       logout();
-      setSessionChecked(true);
       return false;
     }
+
+    return true;
   };
 
   const apiCandidates = () => {
@@ -232,7 +215,7 @@ export function UserProvider({ children }) {
   const value = useMemo(
     () => ({
       token,
-      setToken,
+      setToken: updateToken,
       user,
       setUser,
       isAuthenticated,
