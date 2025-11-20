@@ -38,7 +38,6 @@ const AdminFinance = () => {
   
   // Ajouter l'état stats manquant
   const [stats, setStats] = useState({
-    balance: 0,
     totalCredits: 0,
     totalDebits: 0,
     monthlyBalance: 0,
@@ -643,7 +642,6 @@ const AdminFinance = () => {
       }, 0);
     
     setStats({
-      balance,
       totalCredits,
       totalDebits,
       monthlyBalance,
@@ -1600,7 +1598,7 @@ const AdminFinance = () => {
     if (transactions.length >= 0 && scheduledOperations.length >= 0) {
       calculateStats();
     }
-  }, [transactions, scheduledOperations, balance]);
+  }, [transactions.length, scheduledOperations.length]);
 
   // === FONCTIONS SIMULATION ===
   const createSimulationScenario = async () => {
@@ -2043,7 +2041,7 @@ const AdminFinance = () => {
               colorScheme="purple"
             />
             <Badge
-              colorScheme={stats.balance >= 0 ? "green" : "red"}
+              colorScheme={balance >= 0 ? "green" : "red"}
               fontSize="lg"
               p={2}
               borderRadius="md"
@@ -2051,7 +2049,7 @@ const AdminFinance = () => {
               onClick={() => setShowBalanceConfig(!showBalanceConfig)}
             >
               {isBalanceLocked ? <FiLock style={{marginRight: '0.5rem', display: 'inline-block'}} /> : <FiUnlock style={{marginRight: '0.5rem', display: 'inline-block'}} />}
-              Solde: {formatCurrency(stats.balance)}
+              Solde: {formatCurrency(balance)}
             </Badge>
           </HStack>
         </HStack>
@@ -2122,8 +2120,8 @@ const AdminFinance = () => {
             <CardBody>
               <Stat>
                 <StatLabel>Solde Actuel</StatLabel>
-                <StatNumber color={stats.balance >= 0 ? "green.600" : "red.600"}>
-                  {formatCurrency(stats.balance)}
+                <StatNumber color={balance >= 0 ? "green.600" : "red.600"}>
+                  {formatCurrency(balance)}
                 </StatNumber>
                 {lastBalanceUpdate && (
                   <StatHelpText fontSize="xs">
