@@ -697,6 +697,8 @@ function UserRow({ user, onEdit, onToggleStatus, onLink, onViewLogs, onDelete })
 // Modal de création/édition d'accès
 function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
   const isEdit = !!user;
+  const STORAGE_KEY = 'access_form_draft';
+  
   const [formData, setFormData] = useState({
     username: '',
     firstName: '',
@@ -710,12 +712,23 @@ function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
     customPassword: ''
   });
   const [loading, setLoading] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const toast = useToast();
+  
+  // Save to localStorage when form changes
+  const handleFormChange = (updates) => {
+    const newData = { ...formData, ...updates };
+    setFormData(newData);
+    setIsDirty(true);
+    // Auto-save to localStorage
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(newData));
+  };
 
-  // Prefill on edit
+  // Prefill on edit or restore from localStorage
   useEffect(() => {
     if (isEdit) {
-      setFormData({
+      // Mode édition: charger depuis user
+      const editData = {
         username: user?.username || '',
         firstName: user?.firstName || '',
         lastName: user?.lastName || '',
@@ -724,25 +737,46 @@ function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
         hasInternalAccess: !!user?.hasInternalAccess,
         hasExternalAccess: !!user?.hasExternalAccess,
         linkedMemberId: user?.linkedMember?.id || '',
-        // en édition: ne régénère pas de mot de passe par défaut
         generatePassword: false,
         customPassword: ''
-      });
-    } else {
-      setFormData({
-        username: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        role: 'MEMBER',
-        hasInternalAccess: true,
-        hasExternalAccess: false,
-        linkedMemberId: '',
-        generatePassword: true,
-        customPassword: ''
-      });
+      };
+      setFormData(editData);
+      localStorage.removeItem(STORAGE_KEY);
+      setIsDirty(false);
+    } else if (isOpen) {
+      // Mode création: essayer restaurer depuis localStorage
+      const savedData = localStorage.getItem(STORAGE_KEY);
+      if (savedData) {
+        try {
+          const parsed = JSON.parse(savedData);
+          setFormData(parsed);
+          setIsDirty(false);
+        } catch (e) {
+          console.error('Erreur lors de la restauration des données:', e);
+          resetForm();
+        }
+      } else {
+        resetForm();
+      }
     }
   }, [isEdit, user, isOpen]);
+  
+  const resetForm = () => {
+    setFormData({
+      username: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      role: 'MEMBER',
+      hasInternalAccess: true,
+      hasExternalAccess: false,
+      linkedMemberId: '',
+      generatePassword: true,
+      customPassword: ''
+    });
+    setIsDirty(false);
+    localStorage.removeItem(STORAGE_KEY);
+  };
 
   const handleSubmit = async () => {
     try {
@@ -797,22 +831,11 @@ function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
         });
       }
 
+      // Clear localStorage after success
+      localStorage.removeItem(STORAGE_KEY);
+      resetForm();
       onUserSaved?.();
       onClose();
-
-      // Reset form après action
-      setFormData({
-        username: '',
-        firstName: '',
-        lastName: '',
-        email: '',
-        role: 'MEMBER',
-        hasInternalAccess: true,
-        hasExternalAccess: false,
-        linkedMemberId: '',
-        generatePassword: true,
-        customPassword: ''
-      });
     } catch (error) {
       console.error(error);
       toast({
@@ -849,7 +872,7 @@ function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
                 <FormLabel>Prénom</FormLabel>
                 <Input
                   value={formData.firstName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, firstName: e.target.value }))}
+                  onChange={(e) => handleFormChange({ firstName: e.target.value })}
                   placeholder="Prénom"
                 />
               </FormControl>
@@ -858,7 +881,7 @@ function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
                 <FormLabel>Nom</FormLabel>
                 <Input
                   value={formData.lastName}
-                  onChange={(e) => setFormData(prev => ({ ...prev, lastName: e.target.value }))}
+                  onChange={(e) => handleFormChange({ lastName: e.target.value })}
                   placeholder="Nom"
                 />
               </FormControl>
@@ -890,7 +913,7 @@ function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
               <FormLabel>Rôle Métier</FormLabel>
               <Select
                 value={formData.role}
-                onChange={(e) => setFormData(prev => ({ ...prev, role: e.target.value }))}
+                onChange={(e) => handleFormChange({ role: e.target.value })}
               >
                 <option value="PRESIDENT">Président</option>
                 <option value="VICE_PRESIDENT">Vice-Président</option>
@@ -909,7 +932,7 @@ function CreateAccessModal({ isOpen, onClose, members, onUserSaved, user }) {
               <FormLabel>Lier à une adhésion existante (optionnel)</FormLabel>
               <Select
                 value={formData.linkedMemberId}
-                onChange={(e) => setFormData(prev => ({ ...prev, linkedMemberId: e.target.value }))}
+                onChange={(e) => handleFormChange({ linkedMemberId: e.target.value })}
               >
                 <option value="">Aucune liaison</option>
                 {members.map(member => (
