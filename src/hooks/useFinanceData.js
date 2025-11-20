@@ -117,64 +117,74 @@ export const useFinanceData = (currentUser = null) => {
   const loadFinanceData = useCallback(async () => {
     try {
       setLoading(true);
+      const token = localStorage.getItem("token");
 
       // Charger les transactions
-      const transRes = await fetch(`${API_BASE}/api/finance/transactions`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+      try {
+        const transRes = await fetch(`${API_BASE}/api/finance/transactions`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (transRes.ok) {
+          const data = await transRes.json();
+          setTransactions(data.transactions || []);
+          // Calculer les stats depuis les transactions
+          if (data.transactions && data.transactions.length > 0) {
+            const stats = calculateFinancialStats(data.transactions, []);
+            setStats(stats);
+          }
         }
-      });
-      if (transRes.ok) {
-        const data = await transRes.json();
-        setTransactions(data.transactions || []);
-        setStats(data.stats || {});
+      } catch (err) {
+        console.warn("⚠️ Erreur chargement transactions:", err.message);
       }
 
-      // Charger les documents
-      const docRes = await fetch(`${API_BASE}/api/finance/documents`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+      // Charger les opérations programmées (endpoint: /scheduled-operations)
+      try {
+        const schedRes = await fetch(`${API_BASE}/api/finance/scheduled-operations`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (schedRes.ok) {
+          const data = await schedRes.json();
+          setScheduledOperations(data.operations || []);
         }
-      });
-      if (docRes.ok) {
-        const data = await docRes.json();
-        setDocuments(data.documents || []);
+      } catch (err) {
+        console.warn("⚠️ Erreur chargement opérations programmées:", err.message);
       }
 
-      // Charger les opérations programmées
-      const schedRes = await fetch(`${API_BASE}/api/finance/scheduled`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+      // Charger les notes de frais (endpoint: /expense-reports)
+      try {
+        const expenseRes = await fetch(`${API_BASE}/api/finance/expense-reports`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (expenseRes.ok) {
+          const data = await expenseRes.json();
+          setExpenseReports(data.reports || []);
         }
-      });
-      if (schedRes.ok) {
-        const data = await schedRes.json();
-        setScheduledOperations(data.operations || []);
-      }
-
-      // Charger les notes de frais
-      const expenseRes = await fetch(`${API_BASE}/api/finance/expenses`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
-        }
-      });
-      if (expenseRes.ok) {
-        const data = await expenseRes.json();
-        setExpenseReports(data.reports || []);
+      } catch (err) {
+        console.warn("⚠️ Erreur chargement notes de frais:", err.message);
       }
 
       // Charger le solde
-      const balRes = await fetch(`${API_BASE}/api/finance/balance`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`
+      try {
+        const balRes = await fetch(`${API_BASE}/api/finance/balance`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (balRes.ok) {
+          const data = await balRes.json();
+          setBalance(data.balance || 0);
         }
-      });
-      if (balRes.ok) {
-        const data = await balRes.json();
-        setBalance(data.balance || 0);
+      } catch (err) {
+        console.warn("⚠️ Erreur chargement solde:", err.message);
       }
     } catch (error) {
-      console.error("Erreur chargement données finance:", error);
+      console.error("❌ Erreur chargement données finance:", error);
       toast({
         title: "Erreur",
         description: "Impossible de charger les données financières",
