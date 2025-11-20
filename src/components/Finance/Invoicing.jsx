@@ -15,7 +15,7 @@ import {
   NumberDecrementStepper, Tabs, TabList, TabPanels, Tab, TabPanel,
   Divider
 } from "@chakra-ui/react";
-import { FiDownload, FiEye, FiPlus, FiEdit2, FiTrash2, FiPrinter, FiFileUp } from "react-icons/fi";
+import { FiDownload, FiEye, FiPlus, FiEdit2, FiTrash2, FiPrinter, FiUpload } from "react-icons/fi";
 import { useFinanceData } from "../../hooks/useFinanceData";
 import DevisLinesManager from "../DevisLinesManager";
 
@@ -727,7 +727,7 @@ const FinanceInvoicing = () => {
                       <Button
                         size="sm"
                         colorScheme="gray"
-                        leftIcon={<FiFileUp />}
+                        leftIcon={<FiUpload />}
                         onClick={() => document.getElementById("pdf-upload")?.click()}
                         flex={1}
                       >
