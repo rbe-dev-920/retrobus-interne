@@ -19,10 +19,29 @@ import {
 
 const API_BASE = process.env.REACT_APP_API_URL || "http://localhost:4000";
 
-export const useFinanceData = () => {
+export const useFinanceData = (currentUser = null) => {
   const toast = useToast();
   const [loading, setLoading] = useState(false);
-  const [userRole, setUserRole] = useState('MEMBER'); // À récupérer du contexte auth
+  // Récupérer le rôle depuis l'utilisateur courant ou depuis localStorage
+  const [userRole, setUserRole] = useState(() => {
+    try {
+      const user = currentUser || (() => {
+        const userStr = localStorage.getItem("user");
+        return userStr ? JSON.parse(userStr) : null;
+      })();
+      
+      if (user && typeof getPrimaryRole === "function") {
+        return getPrimaryRole(user);
+      } else if (user?.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+        return user.roles[0];
+      } else if (user?.role) {
+        return user.role;
+      }
+    } catch (e) {
+      console.warn("Erreur lecture userRole:", e.message);
+    }
+    return "MEMBER";
+  });
 
   // État transactions
   const [transactions, setTransactions] = useState([]);
