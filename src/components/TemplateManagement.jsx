@@ -59,7 +59,10 @@ const TemplateManagement = () => {
   const loadTemplates = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/quote-templates');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/quote-templates', {
+        headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      });
       if (!response.ok) throw new Error('Failed to load templates');
       const data = await response.json();
       setTemplates(data);
@@ -83,9 +86,22 @@ const TemplateManagement = () => {
         return;
       }
 
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast({
+          title: 'Erreur',
+          description: 'Authentification requise',
+          status: 'error',
+        });
+        return;
+      }
+
       const response = await fetch('/api/quote-templates', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           ...formData,
           createdBy: 'admin', // TODO: obtenir l'utilisateur actuel
@@ -119,6 +135,17 @@ const TemplateManagement = () => {
         return;
       }
 
+      // Récupérer le token
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast({
+          title: 'Erreur',
+          description: 'Authentification requise',
+          status: 'error',
+        });
+        return;
+      }
+
       // Préparer les données SANS les images (qui restent en base64)
       const dataToSend = {
         name: formData.name,
@@ -132,7 +159,10 @@ const TemplateManagement = () => {
 
       const response = await fetch(`/api/quote-templates/${selectedTemplate.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify(dataToSend),
       });
 
@@ -160,8 +190,19 @@ const TemplateManagement = () => {
     if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce template?')) return;
 
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast({
+          title: 'Erreur',
+          description: 'Authentification requise',
+          status: 'error',
+        });
+        return;
+      }
+
       const response = await fetch(`/api/quote-templates/${templateId}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
       });
 
       if (!response.ok) throw new Error('Failed to delete template');
@@ -180,9 +221,22 @@ const TemplateManagement = () => {
 
   const handlePreview = async (template) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        toast({
+          title: 'Erreur',
+          description: 'Authentification requise',
+          status: 'error',
+        });
+        return;
+      }
+
       const response = await fetch(`/api/quote-templates/${template.id}/preview`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
       });
 
       if (!response.ok) throw new Error('Failed to generate preview');
