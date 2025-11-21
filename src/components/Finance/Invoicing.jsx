@@ -15,7 +15,7 @@ import {
   NumberDecrementStepper, Tabs, TabList, TabPanels, Tab, TabPanel,
   Divider
 } from "@chakra-ui/react";
-import { FiDownload, FiEye, FiPlus, FiEdit2, FiTrash2, FiPrinter, FiUpload } from "react-icons/fi";
+import { FiDownload, FiEye, FiPlus, FiEdit2, FiTrash2, FiPrinter, FiUpload, FiInfo } from "react-icons/fi";
 import { useFinanceData } from "../../hooks/useFinanceData";
 import DevisLinesManager from "../DevisLinesManager";
 
@@ -242,12 +242,57 @@ const FinanceInvoicing = () => {
   // Changer le statut d'un document
   const handleChangeStatus = async (docId, newStatus) => {
     try {
+      const doc = documents.find(d => d.id === docId);
       await updateDocumentStatus(docId, newStatus);
-      toast({
-        title: "Succès",
-        description: "Statut mis à jour",
-        status: "success"
-      });
+      
+      // Suggestion auto-facture quand un devis est accepté
+      if (doc?.type === 'QUOTE' && newStatus === 'ACCEPTED') {
+        toast({
+          title: "Succès",
+          description: "Statut mis à jour",
+          status: "success"
+        });
+        
+        // Attendre un peu puis proposer la création de facture
+        setTimeout(() => {
+          if (window.confirm(`✅ Devis ${doc.number} accepté !\n\nVoulez-vous créer une facture basée sur ce devis pour gagner du temps ?`)) {
+            // Créer une facture avec les données du devis
+            setDocForm({
+              type: "INVOICE",
+              number: `FACT-${doc.number.split('-')[1] || doc.number}`,
+              title: doc.title,
+              description: doc.description || "",
+              date: new Date().toISOString().split("T")[0],
+              dueDate: new Date(new Date().getTime() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+              amountExcludingTax: doc.amountExcludingTax || "",
+              taxRate: doc.taxRate || 0,
+              taxAmount: doc.taxAmount || 0,
+              amount: doc.amount || "",
+              status: "DRAFT",
+              eventId: doc.eventId || "",
+              memberId: doc.memberId || "",
+              destinataireName: doc.destinataireName || "",
+              destinataireAdresse: doc.destinataireAdresse || "",
+              destinataireSociete: doc.destinataireSociete || "",
+              destinataireContacts: doc.destinataireContacts || "",
+              notes: `Facture créée à partir du devis ${doc.number}`,
+              paymentMethod: "",
+              paymentDate: "",
+              amountPaid: ""
+            });
+            setEditingDocument(null);
+            setPdfFile(null);
+            setSelectedTemplate(null);
+            onOpen(); // Ouvrir le modal
+          }
+        }, 500);
+      } else {
+        toast({
+          title: "Succès",
+          description: "Statut mis à jour",
+          status: "success"
+        });
+      }
     } catch (error) {
       toast({
         title: "Erreur",
@@ -751,85 +796,103 @@ const FinanceInvoicing = () => {
               </Box>
 
               {/* Section Génération & Lignes pour Devis */}
-              {docForm.type === "QUOTE" && editingDocument?.id && (
+              {docForm.type === "QUOTE" && (
                 <>
                   <Divider />
-                  <VStack spacing={3} align="stretch" bg="blue.50" p={4} borderRadius="md">
-                    <HStack justify="space-between" align="center">
-                      <Heading size="sm">📄 Génération de Document</Heading>
-                    </HStack>
+                  {!editingDocument?.id ? (
+                    <Box bg="yellow.50" p={4} borderRadius="md" borderLeft="4px solid" borderColor="yellow.500">
+                      <VStack spacing={2} align="flex-start">
+                        <HStack>
+                          <Icon as={FiInfo} color="yellow.600" />
+                          <Text fontSize="sm" color="yellow.700" fontWeight="bold">
+                            💡 Créez d'abord le devis pour gérer les lignes
+                          </Text>
+                        </HStack>
+                        <Text fontSize="xs" color="yellow.600">
+                          Remplissez le formulaire ci-dessus et cliquez sur "Créer" pour accéder au gestionnaire de lignes.
+                        </Text>
+                      </VStack>
+                    </Box>
+                  ) : (
+                    <>
+                      <VStack spacing={3} align="stretch" bg="blue.50" p={4} borderRadius="md">
+                        <HStack justify="space-between" align="center">
+                          <Heading size="sm">📄 Génération de Document</Heading>
+                        </HStack>
 
-                    {/* Sélection template */}
-                    <FormControl>
-                      <FormLabel fontSize="sm" fontWeight="bold">Template HTML</FormLabel>
-                      <Select
-                        size="sm"
-                        value={selectedTemplate?.id || ""}
-                        onChange={(e) => {
-                          const tmpl = templates.find(t => t.id === e.target.value);
-                          setSelectedTemplate(tmpl);
-                        }}
-                      >
-                        <option value="">Sélectionnez un template...</option>
-                        {templates.map(tmpl => (
-                          <option key={tmpl.id} value={tmpl.id}>
-                            {tmpl.name}
-                          </option>
-                        ))}
-                      </Select>
-                    </FormControl>
+                        {/* Sélection template */}
+                        <FormControl>
+                          <FormLabel fontSize="sm" fontWeight="bold">Template HTML</FormLabel>
+                          <Select
+                            size="sm"
+                            value={selectedTemplate?.id || ""}
+                            onChange={(e) => {
+                              const tmpl = templates.find(t => t.id === e.target.value);
+                              setSelectedTemplate(tmpl);
+                            }}
+                          >
+                            <option value="">Sélectionnez un template...</option>
+                            {templates.map(tmpl => (
+                              <option key={tmpl.id} value={tmpl.id}>
+                                {tmpl.name}
+                              </option>
+                            ))}
+                          </Select>
+                        </FormControl>
 
-                    {/* Boutons d'action */}
-                    <HStack spacing={2} width="100%">
-                      {selectedTemplate && (
-                        <Button
-                          size="sm"
-                          colorScheme="blue"
-                          leftIcon={<FiPrinter />}
-                          onClick={generateFromTemplate}
-                          flex={1}
-                        >
-                          Générer depuis template
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        colorScheme="gray"
-                        leftIcon={<FiUpload />}
-                        onClick={() => document.getElementById("pdf-upload")?.click()}
-                        flex={1}
-                      >
-                        Uploader un PDF
-                      </Button>
-                      <input
-                        id="pdf-upload"
-                        type="file"
-                        accept=".pdf"
-                        onChange={handlePdfUpload}
-                        style={{ display: "none" }}
-                      />
-                    </HStack>
+                        {/* Boutons d'action */}
+                        <HStack spacing={2} width="100%">
+                          {selectedTemplate && (
+                            <Button
+                              size="sm"
+                              colorScheme="blue"
+                              leftIcon={<FiPrinter />}
+                              onClick={generateFromTemplate}
+                              flex={1}
+                            >
+                              Générer depuis template
+                            </Button>
+                          )}
+                          <Button
+                            size="sm"
+                            colorScheme="gray"
+                            leftIcon={<FiUpload />}
+                            onClick={() => document.getElementById("pdf-upload")?.click()}
+                            flex={1}
+                          >
+                            Uploader un PDF
+                          </Button>
+                          <input
+                            id="pdf-upload"
+                            type="file"
+                            accept=".pdf"
+                            onChange={handlePdfUpload}
+                            style={{ display: "none" }}
+                          />
+                        </HStack>
 
-                    {pdfFile && (
-                      <Text fontSize="xs" color="green.600" fontWeight="bold">
-                        ✅ PDF sélectionné: {pdfFile.name}
-                      </Text>
-                    )}
-                  </VStack>
+                        {pdfFile && (
+                          <Text fontSize="xs" color="green.600" fontWeight="bold">
+                            ✅ PDF sélectionné: {pdfFile.name}
+                          </Text>
+                        )}
+                      </VStack>
 
-                  {/* Gestionnaire de lignes */}
-                  <Divider />
-                  <Box bg="orange.50" p={4} borderRadius="md" borderLeft="4px solid" borderColor="orange.500">
-                    <DevisLinesManager
-                      devisId={editingDocument.id}
-                      onTotalChange={(total) => {
-                        setDocForm(prev => ({
-                          ...prev,
-                          amount: total.toFixed(2)
-                        }));
-                      }}
-                    />
-                  </Box>
+                      {/* Gestionnaire de lignes */}
+                      <Divider />
+                      <Box bg="orange.50" p={4} borderRadius="md" borderLeft="4px solid" borderColor="orange.500">
+                        <DevisLinesManager
+                          devisId={editingDocument.id}
+                          onTotalChange={(total) => {
+                            setDocForm(prev => ({
+                              ...prev,
+                              amount: total.toFixed(2)
+                            }));
+                          }}
+                        />
+                      </Box>
+                    </>
+                  )}
                 </>
               )}
 
