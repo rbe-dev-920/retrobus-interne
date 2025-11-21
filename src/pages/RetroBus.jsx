@@ -59,7 +59,101 @@ function MaintenanceTab({ vehicles, apiClient }) {
   });
   
   // Modal for service schedule
-  const renderVehiclesSection = () => (
+  const [showAddSchedule, setShowAddSchedule] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    serviceType: 'oil_change',
+    description: '',
+    frequency: 'yearly',
+    priority: 'medium',
+    notes: ''
+  });
+
+  const loadMaintenanceData = async (parc) => {
+    try {
+      setLoading(true);
+      const [maintenanceData, scheduleData, summaryData] = await Promise.all([
+        apiClient.get(`/vehicles/${encodeURIComponent(parc)}/maintenance`),
+        apiClient.get(`/vehicles/${encodeURIComponent(parc)}/service-schedule`),
+        apiClient.get(`/vehicles/${encodeURIComponent(parc)}/maintenance-summary`)
+      ]);
+
+      setMaintenance(Array.isArray(maintenanceData) ? maintenanceData : []);
+      setSchedule(Array.isArray(scheduleData) ? scheduleData : []);
+      setSummary(summaryData);
+    } catch (e) {
+      console.error('Error loading maintenance data:', e);
+      toast({ status: 'error', title: 'Erreur de chargement', description: e.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleVehicleSelect = (v) => {
+    const parc = v.parc || v.id || v.slug;
+    setSelectedVehicle(parc);
+    loadMaintenanceData(parc);
+  };
+
+  const handleAddMaintenance = async () => {
+    if (!selectedVehicle || !maintenanceForm.type || !maintenanceForm.description) {
+      toast({ status: 'warning', title: 'Formulaire incomplet' });
+      return;
+    }
+
+    try {
+      const response = await apiClient.post(
+        `/vehicles/${encodeURIComponent(selectedVehicle)}/maintenance`,
+        maintenanceForm
+      );
+      setMaintenance([response, ...maintenance]);
+      setMaintenanceForm({ type: 'other', description: '', cost: '', mileage: '', performedBy: '', location: '', status: 'completed', notes: '' });
+      setShowAddMaintenance(false);
+      toast({ status: 'success', title: 'Entretien ajouté' });
+      await loadMaintenanceData(selectedVehicle);
+    } catch (e) {
+      toast({ status: 'error', title: 'Erreur', description: e.message });
+    }
+  };
+
+  const handleAddSchedule = async () => {
+    if (!selectedVehicle || !scheduleForm.serviceType) {
+      toast({ status: 'warning', title: 'Formulaire incomplet' });
+      return;
+    }
+
+    try {
+      const response = await apiClient.post(
+        `/vehicles/${encodeURIComponent(selectedVehicle)}/service-schedule`,
+        scheduleForm
+      );
+      setSchedule([response, ...schedule]);
+      setScheduleForm({ serviceType: 'oil_change', description: '', frequency: 'yearly', priority: 'medium', notes: '' });
+      setShowAddSchedule(false);
+      toast({ status: 'success', title: 'Tâche programmée' });
+      await loadMaintenanceData(selectedVehicle);
+    } catch (e) {
+      toast({ status: 'error', title: 'Erreur', description: e.message });
+    }
+  };
+
+  const maintenanceTypes = {
+    oil_change: { label: 'Vidange', color: 'blue' },
+    tire_change: { label: 'Changement pneus', color: 'purple' },
+    brake_service: { label: 'Service freins', color: 'red' },
+    inspection: { label: 'Inspection', color: 'green' },
+    repair: { label: 'Réparation', color: 'orange' },
+    washing: { label: 'Lavage', color: 'cyan' },
+    other: { label: 'Autre', color: 'gray' }
+  };
+
+  const statusColors = {
+    completed: 'green',
+    in_progress: 'yellow',
+    pending: 'orange',
+    cancelled: 'gray'
+  };
+
+  if (!selectedVehicle) {
     <VStack align="stretch" spacing={4}>
       {loading ? (
         <HStack spacing={3} pt={4}>
