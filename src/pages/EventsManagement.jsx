@@ -64,6 +64,7 @@ export default function EventsManagement() {
   const [ha, setHa] = useState({ url: "", org: "", event: "" });
 
   const { isOpen: isDetailOpen, onOpen: onDetailOpen, onClose: onDetailClose } = useDisclosure();
+  const { isOpen: isCreateOpen, onOpen: onCreateOpen, onClose: onCreateClose } = useDisclosure();
   const [saving, setSaving] = useState(false);
 
   // Fetch
