@@ -7,13 +7,14 @@ import {
   Select, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter,
   ModalCloseButton, Tabs, TabList, Tab, TabPanels, TabPanel, FormControl, FormLabel,
   useDisclosure, useToast, Box, Progress, NumberInput, NumberInputField, NumberInputStepper,
-  NumberIncrementStepper, NumberDecrementStepper, Code, Divider
+  NumberIncrementStepper, NumberDecrementStepper, Code, Divider, Icon
 } from "@chakra-ui/react";
 import {
   FiEye, FiEdit, FiDownload, FiPlus, FiRefreshCw, FiSearch, FiMapPin,
-  FiTruck, FiUsers, FiTrash2, FiSave
+  FiTruck, FiUsers, FiTrash2, FiSave, FiBarChart, FiSettings, FiCalendar
 } from "react-icons/fi";
 import { eventsAPI } from "../api/events";
+import SidebarPageLayout from "../components/Layout/SidebarPageLayout";
 // NOTE: On supprime les dépendances non utilisées (membersAPI, RouteMapManager) pour concision
 
 const getStatusBadge = (status) => {
@@ -37,6 +38,15 @@ const formatDate = (d) => {
 
 export default function EventsManagement() {
   const toast = useToast();
+  const [activeSection, setActiveSection] = useState("dashboard");
+
+  const sections = [
+    { id: "dashboard", label: "📊 Tableau de bord", icon: FiBarChart, color: "blue" },
+    { id: "events", label: "📅 Événements", icon: FiCalendar, color: "green" },
+    { id: "participants", label: "👥 Participants", icon: FiUsers, color: "purple" },
+    { id: "routes", label: "🗺️ Itinéraires", icon: FiMapPin, color: "orange" },
+    { id: "settings", label: "⚙️ Paramètres", icon: FiSettings, color: "gray" }
+  ];
 
   // Base
   const [events, setEvents] = useState([]);
@@ -215,8 +225,207 @@ export default function EventsManagement() {
     }
   };
 
+  // Rendu du contenu basé sur la section active
+  const renderContent = () => {
+    switch (activeSection) {
+      case "dashboard":
+        return renderDashboard();
+      case "events":
+        return renderEventsTab();
+      case "participants":
+        return renderParticipantsTab();
+      case "routes":
+        return renderRoutesTab();
+      case "settings":
+        return renderSettingsTab();
+      default:
+        return renderDashboard();
+    }
+  };
+
+  // Composants de rendu pour chaque section
+  const renderDashboard = () => (
+    <Box>
+      <SimpleGrid columns={{ base: 1, md: 4 }} spacing={4} mb={8}>
+        <Stat bg="blue.50" p={4} borderRadius="lg">
+          <StatLabel>Total d'événements</StatLabel>
+          <StatNumber>{events.length}</StatNumber>
+        </Stat>
+        <Stat bg="green.50" p={4} borderRadius="lg">
+          <StatLabel>Publiés</StatLabel>
+          <StatNumber>{stats.published}</StatNumber>
+        </Stat>
+        <Stat bg="purple.50" p={4} borderRadius="lg">
+          <StatLabel>À venir</StatLabel>
+          <StatNumber>{stats.upcoming}</StatNumber>
+        </Stat>
+        <Stat bg="orange.50" p={4} borderRadius="lg">
+          <StatLabel>Participants</StatLabel>
+          <StatNumber>{stats.totalParticipants}</StatNumber>
+        </Stat>
+      </SimpleGrid>
+      {renderEventsTab()}
+    </Box>
+  );
+
+  const renderEventsTab = () => (
+    <Box>
+      <HStack mb={6} spacing={4}>
+        <InputGroup flex={1}>
+          <InputLeftElement children={<Icon as={FiSearch} />} />
+          <Input
+            placeholder="Chercher un événement..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </InputGroup>
+        <Select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)} w="180px">
+          <option value="ALL">Tous les statuts</option>
+          <option value="DRAFT">Brouillons</option>
+          <option value="PUBLISHED">Publiés</option>
+          <option value="ARCHIVED">Archivés</option>
+        </Select>
+        <Button leftIcon={<FiPlus />} colorScheme="blue" onClick={onCreateOpen}>
+          Nouvel événement
+        </Button>
+      </HStack>
+      {/* Contenu des événements */}
+      {events.length === 0 ? (
+        <Center py={20}>
+          <Text color="gray.500">Aucun événement trouvé</Text>
+        </Center>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          {filteredEvents.map((e) => (
+            <Card key={e.id} bg="white" borderWidth={1}>
+              <CardHeader pb={2}>
+                <HStack justify="space-between">
+                  <Heading size="md">{e.title}</Heading>
+                  {getStatusBadge(e.status)}
+                </HStack>
+              </CardHeader>
+              <CardBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text fontSize="sm">{e.description}</Text>
+                  <HStack fontSize="sm" color="gray.600">
+                    <FiCalendar />
+                    <Text>{formatDate(e.date)}</Text>
+                  </HStack>
+                  <HStack fontSize="sm" color="gray.600">
+                    <FiUsers />
+                    <Text>{participants.length} participants</Text>
+                  </HStack>
+                  <HStack>
+                    <Button size="sm" leftIcon={<FiEye />} onClick={() => {
+                      setSelectedEvent(e);
+                      onDetailOpen();
+                    }}>Détails</Button>
+                    <Button size="sm" leftIcon={<FiEdit />} variant="outline">Éditer</Button>
+                  </HStack>
+                </VStack>
+              </CardBody>
+            </Card>
+          ))}
+        </SimpleGrid>
+      )}
+    </Box>
+  );
+
+  const renderParticipantsTab = () => (
+    <Box>
+      <Heading size="md" mb={4}>Participants</Heading>
+      {participants.length === 0 ? (
+        <Center py={20}>
+          <Text color="gray.500">Sélectionnez un événement pour voir ses participants</Text>
+        </Center>
+      ) : (
+        <Card>
+          <CardBody>
+            <Table size="sm">
+              <Thead>
+                <Tr>
+                  <Th>Nom</Th>
+                  <Th>Email</Th>
+                  <Th>Statut</Th>
+                  <Th>Actions</Th>
+                </Tr>
+              </Thead>
+              <Tbody>
+                {participants.map((p) => (
+                  <Tr key={p.id}>
+                    <Td>{p.name}</Td>
+                    <Td>{p.email}</Td>
+                    <Td><Badge colorScheme="green">Confirmé</Badge></Td>
+                    <Td>
+                      <IconButton size="sm" icon={<FiTrash2 />} variant="ghost" />
+                    </Td>
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
+          </CardBody>
+        </Card>
+      )}
+    </Box>
+  );
+
+  const renderRoutesTab = () => (
+    <Box>
+      <Heading size="md" mb={4}>Itinéraires</Heading>
+      {routes.length === 0 ? (
+        <Center py={20}>
+          <Text color="gray.500">Aucun itinéraire défini</Text>
+        </Center>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2 }} spacing={4}>
+          {routes.map((r) => (
+            <Card key={r.id} bg="white" borderWidth={1}>
+              <CardHeader>
+                <Heading size="sm">{r.name}</Heading>
+              </CardHeader>
+              <CardBody>
+                <Text fontSize="sm" color="gray.600">{r.description}</Text>
+              </CardBody>
+            </Card>
+          ))}
+        </SimpleGrid>
+      )}
+    </Box>
+  );
+
+  const renderSettingsTab = () => (
+    <Box>
+      <Heading size="md" mb={4}>Paramètres</Heading>
+      <Card maxW="400px">
+        <CardBody>
+          <FormControl mb={4}>
+            <FormLabel>Titre du module</FormLabel>
+            <Input placeholder="Gestion des Événements" />
+          </FormControl>
+          <FormControl>
+            <FormLabel>Notifications par défaut</FormLabel>
+            <Select>
+              <option>Activées</option>
+              <option>Désactivées</option>
+            </Select>
+          </FormControl>
+        </CardBody>
+      </Card>
+    </Box>
+  );
+
   return (
-    <Container maxW="7xl" py={6}>
+    <SidebarPageLayout
+      title="Gestion des Événements"
+      subtitle="Création, planification et suivi des événements"
+      icon={FiCalendar}
+      sections={sections}
+      activeSection={activeSection}
+      onSectionChange={setActiveSection}
+      headerGradient="linear(to-r, green.500, green.600)"
+    >
+      <Box>
+        {renderContent()}
       {/* Header + stats */}
       <VStack align="start" spacing={6} mb={8}>
         <HStack w="100%" justify="space-between">
@@ -638,6 +847,7 @@ export default function EventsManagement() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-    </Container>
+      </Box>
+    </SidebarPageLayout>
   );
 }
