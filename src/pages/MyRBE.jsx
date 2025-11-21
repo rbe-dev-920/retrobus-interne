@@ -33,20 +33,10 @@ import PermissionsManager from '../components/PermissionsManager';
 const cards = [
   {
     title: "RétroDemandes",
-    description: "Créez vos demandes et consultez vos devis",
-    to: "/dashboard/retro-requests",
+    description: "Créez vos demandes et consultez le récapitulatif",
+    to: "/dashboard/retro-demandes",
     icon: FiPlus,
     color: "blue",
-    resource: "RETRODEMANDES",
-    cardAccess: true
-  },
-  {
-    title: "Récapitulatif Demandes",
-    description: "Vue d'ensemble de toutes les RétroDemandes",
-    to: "/dashboard/president/retro-requests",
-    icon: FiPlus,
-    color: "cyan",
-    requiredRole: ['PRESIDENT', 'ADMIN'],
     resource: "RETRODEMANDES",
     cardAccess: true
   },

@@ -40,8 +40,7 @@ import RetroMerch from "./pages/RetroMerch";
 import RetroPlanning from "./pages/RetroPlanning";
 import AttendancePage from "./pages/AttendancePage";
 import AttendanceManager from "./pages/AttendanceManager";
-import RetroRequests from "./pages/RetroRequests";
-import PresidentDashboard from "./pages/PresidentDashboard";
+import RetroDemandes from "./pages/RetroDemandes";
 import PermissionsManager from "./components/PermissionsManager";
 
 export default function App() {
@@ -65,9 +64,8 @@ export default function App() {
   <Route path="/dashboard/myrbe" element={<ProtectedRoute><MyRBE /></ProtectedRoute>} />
   <Route path="/dashboard/myrbe/:parc" element={<ProtectedRoute><MyRBEActions /></ProtectedRoute>} />
         
-        {/* 📋 RétroDemandes - Devis et demandes */}
-        <Route path="/dashboard/retro-requests" element={<ProtectedRoute><RetroRequests /></ProtectedRoute>} />
-        <Route path="/dashboard/president/retro-requests" element={<RoleProtectedRoute allowedRoles={['PRESIDENT', 'ADMIN']}><PresidentDashboard /></RoleProtectedRoute>} />
+        {/* 📋 RétroDemandes - Demandes unifiées avec contrôle d'accès */}
+        <Route path="/dashboard/retro-demandes" element={<ProtectedRoute><RetroDemandes /></ProtectedRoute>} />
         
         {/* 💰 Route gestion financière */}
         <Route path="/admin/finance" element={<RoleProtectedRoute deniedRoles={['CLIENT', 'GUEST']}><AdminFinance /></RoleProtectedRoute>} />
