@@ -42,12 +42,13 @@ const cards = [
   },
   {
     title: "RétroBus",
-    description: "Mécanique, véhicules et maintenance",
+    description: "Suivi complet du parc, entretiens et pointages",
     to: "/dashboard/retrobus",
     icon: FiTool,
     color: "teal",
     resource: "VEHICLES",
-    cardAccess: true
+    cardAccess: true,
+    badge: { label: "Workspace", color: "teal" }
   },
   {
     title: "Gestion Financière",

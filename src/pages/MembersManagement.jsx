@@ -546,44 +546,56 @@ export default function MembersManagement() {
       return renderLoadingState();
     }
 
+    const safeStats = {
+      total: stats.total || 0,
+      withLogin: stats.withLogin || 0,
+      active: stats.active || 0,
+      recentlyActive: stats.recentlyActive || 0
+    };
+
     return (
-      <VStack spacing={8} align="stretch">
+      <VStack spacing={6} align="stretch">
+        <Text color="gray.600">
+          Suivi global des adhésions et des connexions MyRBE.
+        </Text>
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
           <Card bg={cardBg}>
             <CardBody>
               <Stat>
-                <StatLabel>Total adhérents</StatLabel>
-                <StatNumber color="blue.500">{members.length}</StatNumber>
+                <StatLabel>Total membres</StatLabel>
+                <StatNumber color="blue.500">{safeStats.total}</StatNumber>
               </Stat>
             </CardBody>
           </Card>
           <Card bg={cardBg}>
             <CardBody>
               <Stat>
-                <StatLabel>Actifs</StatLabel>
-                <StatNumber color="green.500">{members.filter(m => m.membershipStatus === 'ACTIVE').length}</StatNumber>
+                <StatLabel>Avec accès MyRBE</StatLabel>
+                <StatNumber color="green.500">{safeStats.withLogin}</StatNumber>
+                <StatHelpText>
+                  {safeStats.total > 0 ? Math.round((safeStats.withLogin / safeStats.total) * 100) : 0}%
+                </StatHelpText>
               </Stat>
             </CardBody>
           </Card>
           <Card bg={cardBg}>
             <CardBody>
               <Stat>
-                <StatLabel>En attente</StatLabel>
-                <StatNumber color="yellow.500">{members.filter(m => m.membershipStatus === 'PENDING').length}</StatNumber>
+                <StatLabel>Adhésions actives</StatLabel>
+                <StatNumber color="purple.500">{safeStats.active}</StatNumber>
               </Stat>
             </CardBody>
           </Card>
           <Card bg={cardBg}>
             <CardBody>
               <Stat>
-                <StatLabel>Accès activés</StatLabel>
-                <StatNumber color="purple.500">{members.filter(m => m.loginEnabled).length}</StatNumber>
+                <StatLabel>Connexions récentes</StatLabel>
+                <StatNumber color="orange.500">{safeStats.recentlyActive}</StatNumber>
+                <StatHelpText>30 derniers jours</StatHelpText>
               </Stat>
             </CardBody>
           </Card>
         </SimpleGrid>
-
-        {renderMembersTab()}
       </VStack>
     );
   };
@@ -594,28 +606,85 @@ export default function MembersManagement() {
     }
 
     return (
-      <Box>
-        <HStack mb={6} spacing={4}>
-          <InputGroup flex={1}>
-            <InputLeftElement><FiSearch /></InputLeftElement>
-            <Input
-              placeholder="Chercher par nom ou email..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+      <VStack spacing={6} align="stretch">
+        <Card bg={cardBg}>
+          <CardBody>
+            <VStack spacing={4} align="stretch">
+              <HStack w="full" spacing={4} align={{ base: 'stretch', md: 'center' }} flexWrap="wrap">
+                <InputGroup flex={2}>
+                  <InputLeftElement>
+                    <FiSearch />
+                  </InputLeftElement>
+                  <Input
+                    placeholder="Rechercher par nom, email ou matricule..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </InputGroup>
+
+                <Select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  maxW="200px"
+                >
+                  <option value="ALL">Tous statuts</option>
+                  {Object.entries(MEMBERSHIP_STATUS).map(([key, status]) => (
+                    <option key={key} value={key}>{status.label}</option>
+                  ))}
+                </Select>
+
+                <Select
+                  value={roleFilter}
+                  onChange={(e) => setRoleFilter(e.target.value)}
+                  maxW="200px"
+                >
+                  <option value="ALL">Tous rôles</option>
+                  {Object.entries(MEMBER_ROLES).map(([key, role]) => (
+                    <option key={key} value={key}>{role.label}</option>
+                  ))}
+                </Select>
+              </HStack>
+
+              <HStack spacing={4} justify="space-between" flexWrap="wrap">
+                <Checkbox
+                  isChecked={showOnlyWithLogin}
+                  onChange={(e) => setShowOnlyWithLogin(e.target.checked)}
+                >
+                  Afficher seulement les membres avec accès MyRBE
+                </Checkbox>
+
+                <Button leftIcon={<FiRefreshCw />} size="sm" onClick={loadMembers}>
+                  Actualiser
+                </Button>
+              </HStack>
+            </VStack>
+          </CardBody>
+        </Card>
+
+        <Text fontSize="sm" color="gray.600">
+          {filteredMembers.length} membre(s) affiché(s)
+        </Text>
+
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
+          {filteredMembers.map(member => (
+            <MemberCard
+              key={member.id}
+              member={member}
+              onEdit={handleEdit}
+              onLinkAccess={handleLinkAccess}
+              onTerminate={handleTerminate}
+              onDeleteMember={handleDeleteMember}
             />
-          </InputGroup>
-          <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} w="150px">
-            <option value="ALL">Tous</option>
-            <option value="ACTIVE">Actif</option>
-            <option value="PENDING">En attente</option>
-            <option value="EXPIRED">Expiré</option>
-          </Select>
-          <Button leftIcon={<FiPlus />} colorScheme="blue" onClick={onCreateOpen}>
-            Nouvel adhérent
-          </Button>
-        </HStack>
-        {renderExistingContent('members')}
-      </Box>
+          ))}
+        </SimpleGrid>
+
+        {filteredMembers.length === 0 && (
+          <Alert status="info">
+            <AlertIcon />
+            Aucun membre ne correspond aux critères de recherche
+          </Alert>
+        )}
+      </VStack>
     );
   };
 
@@ -645,190 +714,63 @@ export default function MembersManagement() {
     );
   };
 
-  if (loading) {
-    return (
-      <SidebarPageLayout
-        title="Gestion des Adhésions"
-        subtitle="Créer et gérer les adhérents"
-        icon={FiUsers}
-        sections={sections}
-        activeSection={activeSection}
-        onSectionChange={setActiveSection}
-        headerGradient="linear(to-r, purple.500, purple.600)"
-      >
-        <Box textAlign="center" py={20}>
-          <Spinner size="xl" color="purple.500" />
-          <Text mt={4}>Chargement des membres...</Text>
-        </Box>
-      </SidebarPageLayout>
-    );
-  }
+  const workspaceSections = [
+    {
+      id: 'dashboard',
+      label: 'Tableau de bord',
+      icon: FiBarChart,
+      description: 'Vue synthétique',
+      render: renderDashboard
+    },
+    {
+      id: 'members',
+      label: 'Adhérents',
+      icon: FiUsers,
+      description: 'Création et recherche',
+      render: renderMembersTab
+    },
+    {
+      id: 'roles',
+      label: 'Rôles',
+      icon: FiShield,
+      description: 'Permissions',
+      render: renderRolesTab
+    },
+    {
+      id: 'settings',
+      label: 'Paramètres',
+      icon: FiSettings,
+      description: 'Options avancées',
+      render: renderSettingsTab
+    }
+  ];
+
+  const headerActions = [
+    <Button key="create" leftIcon={<FiPlus />} colorScheme="blue" onClick={onCreateOpen}>
+      Nouvel adhérent
+    </Button>
+  ];
 
   return (
-    <SidebarPageLayout
-      title="Gestion des Adhésions"
-      subtitle="Créer et gérer les adhérents"
-      icon={FiUsers}
-      sections={sections}
-      activeSection={activeSection}
-      onSectionChange={setActiveSection}
-      headerGradient="linear(to-r, purple.500, purple.600)"
-    >
-      <Box>
-        {renderContent()}
-      {/* Header */}
-      <VStack spacing={6} align="stretch">
-        <HStack justify="space-between">
-          <VStack align="start" spacing={1}>
-            <Heading size="xl" display="flex" alignItems="center">
-              <FiUsers style={{ marginRight: '12px' }} />
-              Gestion des Adhésions
-            </Heading>
-            <Text color="gray.600">Créer et gérer les adhérents (les identifiants sont gérés séparément)</Text>
-          </VStack>
-          
-          <Button
-            leftIcon={<FiPlus />}
-            colorScheme="blue"
-            size="lg"
-            onClick={onCreateOpen}
-          >
-            Nouvel adhérent
-          </Button>
-        </HStack>
+    <>
+      <WorkspaceLayout
+        title="Gestion des Adhésions"
+        subtitle="Créer et gérer les adhérents (les identifiants sont gérés séparément)"
+        sections={workspaceSections}
+        defaultSectionId="dashboard"
+        sidebarTitle="Adhésions"
+        sidebarSubtitle="Espace MyRBE"
+        sidebarTitleIcon={FiUsers}
+        versionLabel="Adhésions v2"
+        headerActions={headerActions}
+      />
 
-        {/* Statistiques */}
-        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
-          <Card bg={cardBg}>
-            <CardBody>
-              <Stat>
-                <StatLabel>Total membres</StatLabel>
-                <StatNumber color="blue.500">{stats.total}</StatNumber>
-              </Stat>
-            </CardBody>
-          </Card>
-          
-          <Card bg={cardBg}>
-            <CardBody>
-              <Stat>
-                <StatLabel>Avec accès MyRBE</StatLabel>
-                <StatNumber color="green.500">{stats.withLogin}</StatNumber>
-                <StatHelpText>{stats.total > 0 ? Math.round((stats.withLogin / stats.total) * 100) : 0}%</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
-          
-          <Card bg={cardBg}>
-            <CardBody>
-              <Stat>
-                <StatLabel>Adhésions actives</StatLabel>
-                <StatNumber color="purple.500">{stats.active}</StatNumber>
-              </Stat>
-            </CardBody>
-          </Card>
-          
-          <Card bg={cardBg}>
-            <CardBody>
-              <Stat>
-                <StatLabel>Connexions récentes</StatLabel>
-                <StatNumber color="orange.500">{stats.recentlyActive}</StatNumber>
-                <StatHelpText>30 derniers jours</StatHelpText>
-              </Stat>
-            </CardBody>
-          </Card>
-        </SimpleGrid>
-
-        {/* Filtres */}
-        <Card bg={cardBg}>
-          <CardBody>
-            <VStack spacing={4}>
-              <HStack w="full" spacing={4}>
-                <InputGroup flex={2}>
-                  <InputLeftElement>
-                    <FiSearch />
-                  </InputLeftElement>
-                  <Input
-                    placeholder="Rechercher par nom, email ou matricule..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </InputGroup>
-                
-                <Select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  maxW="200px"
-                >
-                  <option value="ALL">Tous statuts</option>
-                  {Object.entries(MEMBERSHIP_STATUS).map(([key, status]) => (
-                    <option key={key} value={key}>{status.label}</option>
-                  ))}
-                </Select>
-                
-                <Select
-                  value={roleFilter}
-                  onChange={(e) => setRoleFilter(e.target.value)}
-                  maxW="200px"
-                >
-                  <option value="ALL">Tous rôles</option>
-                  {Object.entries(MEMBER_ROLES).map(([key, role]) => (
-                    <option key={key} value={key}>{role.label}</option>
-                  ))}
-                </Select>
-              </HStack>
-              
-              <HStack>
-                <Checkbox
-                  isChecked={showOnlyWithLogin}
-                  onChange={(e) => setShowOnlyWithLogin(e.target.checked)}
-                >
-                  Afficher seulement les membres avec accès MyRBE
-                </Checkbox>
-                
-                <Button leftIcon={<FiRefreshCw />} size="sm" onClick={loadMembers}>
-                  Actualiser
-                </Button>
-              </HStack>
-            </VStack>
-          </CardBody>
-        </Card>
-
-        {/* Liste des membres */}
-        <Text fontSize="sm" color="gray.600">
-          {filteredMembers.length} membre(s) affiché(s)
-        </Text>
-        
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4}>
-          {filteredMembers.map(member => (
-            <MemberCard
-              key={member.id}
-              member={member}
-              onEdit={handleEdit}
-              onLinkAccess={handleLinkAccess}
-              onTerminate={handleTerminate}
-              onDeleteMember={handleDeleteMember}
-            />
-          ))}
-        </SimpleGrid>
-
-        {filteredMembers.length === 0 && (
-          <Alert status="info">
-            <AlertIcon />
-            Aucun membre ne correspond aux critères de recherche
-          </Alert>
-        )}
-      </VStack>
-
-      {/* Modals */}
       <CreateMember
         isOpen={isCreateOpen}
         onClose={onCreateClose}
         onMemberCreated={handleMemberCreated}
       />
-      
-      {/* Connexion logs déplacés vers Gestion des accès */}
 
-      {/* Link existing access modal */}
       <Modal isOpen={isLinkOpen} onClose={onLinkClose}>
         <ModalOverlay />
         <ModalContent>
@@ -855,7 +797,6 @@ export default function MembersManagement() {
         </ModalContent>
       </Modal>
 
-      {/* Edit member modal */}
       <Modal isOpen={isEditOpen} onClose={onEditClose} size="xl">
         <ModalOverlay />
         <ModalContent>
@@ -919,7 +860,6 @@ export default function MembersManagement() {
         </ModalContent>
       </Modal>
 
-      {/* Terminate membership modal */}
       <Modal isOpen={isTerminateOpen} onClose={onTerminateClose}>
         <ModalOverlay />
         <ModalContent>
@@ -963,7 +903,6 @@ export default function MembersManagement() {
           </ModalFooter>
         </ModalContent>
       </Modal>
-      </Box>
-    </SidebarPageLayout>
+    </>
   );
 }

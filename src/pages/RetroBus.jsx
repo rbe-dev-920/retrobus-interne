@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
   Box, Heading, Text, SimpleGrid, Stat, StatLabel, StatNumber, Card, CardBody,
   Tabs, TabList, TabPanels, Tab, TabPanel, useToast, Spinner, HStack, VStack,
   Badge, Tag, TagLabel, TagLeftIcon, Button, Divider, Table, Thead, Tbody, Tr, Th, Td,
   Icon, Progress, Alert, AlertIcon, Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalFooter, ModalCloseButton, Slider, SliderTrack, SliderFilledTrack, SliderThumb, FormLabel
 } from "@chakra-ui/react";
-import { FiClock, FiAlertTriangle, FiTool, FiFileText, FiInfo, FiEdit, FiSliders } from "react-icons/fi";
+import { FiClock, FiAlertTriangle, FiTool, FiFileText, FiInfo, FiEdit, FiSliders, FiRefreshCw } from "react-icons/fi";
+import WorkspaceLayout from "../components/Layout/WorkspaceLayout";
 import { apiClient } from "../api/config";
 import CaracteristiquesEditor from '../components/vehicle/CaracteristiquesEditor.jsx';
 import { useNavigate } from "react-router-dom";
@@ -58,312 +59,364 @@ function MaintenanceTab({ vehicles, apiClient }) {
   });
   
   // Modal for service schedule
-  const [showAddSchedule, setShowAddSchedule] = useState(false);
-  const [scheduleForm, setScheduleForm] = useState({
-    serviceType: 'oil_change',
-    description: '',
-    frequency: 'yearly',
-    priority: 'medium',
-    notes: ''
-  });
+  const renderVehiclesSection = () => (
+    <VStack align="stretch" spacing={4}>
+      {loading ? (
+        <HStack spacing={3} pt={4}>
+          <Spinner />
+          <Text>Chargement des véhicules…</Text>
+        </HStack>
+      ) : (
+        <>
+          <Alert status="info">
+            <AlertIcon />
+            <VStack align="start" spacing={1}>
+              <Text fontWeight="600">Infos techniques</Text>
+              <Text fontSize="sm">
+                Utilisez le bouton "Infos techniques" de chaque carte pour mettre à jour le niveau de gasoil et les caractéristiques.
+              </Text>
+            </VStack>
+          </Alert>
+          {vehicleCards || <Text mt={2}>Aucun véhicule pour le moment.</Text>}
+        </>
+      )}
+    </VStack>
+  );
 
-  const loadMaintenanceData = async (parc) => {
-    try {
-      setLoading(true);
-      const [maintenanceData, scheduleData, summaryData] = await Promise.all([
-        apiClient.get(`/vehicles/${encodeURIComponent(parc)}/maintenance`),
-        apiClient.get(`/vehicles/${encodeURIComponent(parc)}/service-schedule`),
-        apiClient.get(`/vehicles/${encodeURIComponent(parc)}/maintenance-summary`)
-      ]);
-      
-      setMaintenance(Array.isArray(maintenanceData) ? maintenanceData : []);
-      setSchedule(Array.isArray(scheduleData) ? scheduleData : []);
-      setSummary(summaryData);
-    } catch (e) {
-      console.error('Error loading maintenance data:', e);
-      toast({ status: 'error', title: 'Erreur de chargement', description: e.message });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const renderHistorySection = () => (
+    <VStack align="start" spacing={4} py={2}>
+      <HStack justify="space-between" w="full">
+        <HStack>
+          <FiFileText />
+          <Heading size="sm">Historique des usages</Heading>
+        </HStack>
+        <Button size="sm" onClick={loadAllUsages} isLoading={loadingUsages}>
+          Charger
+        </Button>
+      </HStack>
 
-  const handleVehicleSelect = (v) => {
-    const parc = v.parc || v.id || v.slug;
-    setSelectedVehicle(parc);
-    loadMaintenanceData(parc);
-  };
-
-  const handleAddMaintenance = async () => {
-    if (!selectedVehicle || !maintenanceForm.type || !maintenanceForm.description) {
-      toast({ status: 'warning', title: 'Formulaire incomplet' });
-      return;
-    }
-    
-    try {
-      const response = await apiClient.post(
-        `/vehicles/${encodeURIComponent(selectedVehicle)}/maintenance`,
-        maintenanceForm
-      );
-      setMaintenance([response, ...maintenance]);
-      setMaintenanceForm({ type: 'other', description: '', cost: '', mileage: '', performedBy: '', location: '', status: 'completed', notes: '' });
-      setShowAddMaintenance(false);
-      toast({ status: 'success', title: 'Entretien ajouté' });
-      await loadMaintenanceData(selectedVehicle);
-    } catch (e) {
-      toast({ status: 'error', title: 'Erreur', description: e.message });
-    }
-  };
-
-  const handleAddSchedule = async () => {
-    if (!selectedVehicle || !scheduleForm.serviceType) {
-      toast({ status: 'warning', title: 'Formulaire incomplet' });
-      return;
-    }
-    
-    try {
-      const response = await apiClient.post(
-        `/vehicles/${encodeURIComponent(selectedVehicle)}/service-schedule`,
-        scheduleForm
-      );
-      setSchedule([response, ...schedule]);
-      setScheduleForm({ serviceType: 'oil_change', description: '', frequency: 'yearly', priority: 'medium', notes: '' });
-      setShowAddSchedule(false);
-      toast({ status: 'success', title: 'Tâche programmée' });
-      await loadMaintenanceData(selectedVehicle);
-    } catch (e) {
-      toast({ status: 'error', title: 'Erreur', description: e.message });
-    }
-  };
-
-  const maintenanceTypes = {
-    oil_change: { label: 'Vidange', color: 'blue' },
-    tire_change: { label: 'Changement pneus', color: 'purple' },
-    brake_service: { label: 'Service freins', color: 'red' },
-    inspection: { label: 'Inspection', color: 'green' },
-    repair: { label: 'Réparation', color: 'orange' },
-    washing: { label: 'Lavage', color: 'cyan' },
-    other: { label: 'Autre', color: 'gray' }
-  };
-
-  const statusColors = {
-    completed: 'green',
-    in_progress: 'yellow',
-    pending: 'orange',
-    cancelled: 'gray'
-  };
-
-  if (!selectedVehicle) {
-    return (
-      <VStack align="start" spacing={4} py={2}>
+      {loadingUsages ? (
+        <HStack spacing={3}>
+          <Spinner size="sm" />
+          <Text>Chargement de l'historique...</Text>
+        </HStack>
+      ) : Object.keys(usagesData).length === 0 ? (
         <Alert status="info">
           <AlertIcon />
-          <VStack align="start">
-            <Text fontWeight="600">Sélectionnez un véhicule</Text>
-            <Text fontSize="sm">Choisissez un véhicule ci-dessous pour voir son historique d'entretien et son planning.</Text>
-          </VStack>
+          Cliquez sur "Charger" pour afficher l'historique des usages
         </Alert>
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} gap={3} w="full">
-          {vehicles && vehicles.map(v => {
+      ) : (
+        <VStack align="stretch" w="full" spacing={4}>
+          {vehicles.map((v) => {
             const parc = v.parc || v.id || v.slug;
+            const usages = usagesData[parc] || [];
+            const completedUsages = usages.filter(u => u.endedAt);
+
+            if (completedUsages.length === 0) return null;
+
             return (
-              <Card key={parc} variant="outline" cursor="pointer" _hover={{ shadow: 'md' }} onClick={() => handleVehicleSelect(v)}>
+              <Card key={parc} variant="outline">
                 <CardBody>
-                  <Heading size="sm">{parc}</Heading>
-                  <Text fontSize="sm" color="gray.600">{v.marque} {v.modele}</Text>
-                  <Button mt={2} size="sm" colorScheme="blue" w="full">Consulter</Button>
+                  <Heading size="sm" mb={3}>{parc} - {completedUsages.length} usage(s)</Heading>
+                  <Table size="sm" variant="simple">
+                    <Thead>
+                      <Tr>
+                        <Th>Début</Th>
+                        <Th>Fin</Th>
+                        <Th>Conducteur</Th>
+                        <Th>Note</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
+                      {completedUsages.slice(0, 5).map((usage) => (
+                        <Tr key={usage.id}>
+                          <Td>{new Date(usage.startedAt).toLocaleDateString('fr-FR')}</Td>
+                          <Td>{usage.endedAt ? new Date(usage.endedAt).toLocaleDateString('fr-FR') : '-'}</Td>
+                          <Td>{usage.conducteur || '-'}</Td>
+                          <Td fontSize="sm" color="gray.600">{usage.note || '-'}</Td>
+                        </Tr>
+                      ))}
+                    </Tbody>
+                  </Table>
+                  {completedUsages.length > 5 && (
+                    <Text mt={2} fontSize="sm" color="gray.500">
+                      ... et {completedUsages.length - 5} autres usage(s)
+                    </Text>
+                  )}
+                </CardBody>
+              </Card>
+            );
+          })}
+        </VStack>
+      )}
+    </VStack>
+  );
+
+  const renderMaintenanceSection = () => (
+    <MaintenanceTab vehicles={vehicles} apiClient={apiClient} />
+  );
+
+  const renderAdministrativeSection = () => (
+    <VStack align="start" spacing={3} py={2}>
+      <HStack>
+        <FiAlertTriangle />
+        <Heading size="sm">Situation administrative</Heading>
+      </HStack>
+      <Alert status="warning">
+        <AlertIcon />
+        Cette section sera développée prochainement pour gérer : documents, assurances, contrôle technique, conformité.
+      </Alert>
+      <Text opacity={0.8}>
+        En attendant, vous pouvez ajouter ces informations dans les notes de chaque véhicule via la page d'édition.
+      </Text>
+    </VStack>
+  );
+
+  const renderCheckinsSection = () => (
+    <VStack align="start" spacing={4} py={2}>
+      <HStack>
+        <FiClock />
+        <Heading size="sm">Pointages actifs</Heading>
+      </HStack>
+
+      {vehicles.filter(v => {
+        const parc = v.parc || v.id || v.slug;
+        return statusByParc[parc]?.active;
+      }).length === 0 ? (
+        <Alert status="info">
+          <AlertIcon />
+          Aucun pointage en cours actuellement
+        </Alert>
+      ) : (
+        <SimpleGrid columns={{ base: 1, md: 2 }} gap={4} w="full">
+          {vehicles.map((v) => {
+            const parc = v.parc || v.id || v.slug;
+            const status = statusByParc[parc];
+
+            if (!status?.active) return null;
+
+            const duration = status.startedAt
+              ? Math.floor((Date.now() - new Date(status.startedAt).getTime()) / (1000 * 60))
+              : 0;
+
+            return (
+              <Card key={parc} variant="outline" borderColor="purple.300">
+                <CardBody>
+                  <VStack align="start" spacing={2}>
+                    <Heading size="sm">{parc}</Heading>
+                    <HStack>
+                      <Icon as={FiClock} color="purple.500" />
+                      <Text fontSize="sm">
+                        En cours depuis {duration} min
+                      </Text>
+                    </HStack>
+                    {status.conducteur && (
+                      <Text fontSize="sm" color="gray.600">
+                        Conducteur: {status.conducteur}
+                      </Text>
+                    )}
+                    <Button
+                      size="sm"
+                      colorScheme="purple"
+                      onClick={() => navigate(`/mobile/v/${encodeURIComponent(parc)}`)}
+                    >
+                      Voir le pointage
+                    </Button>
+                  </VStack>
                 </CardBody>
               </Card>
             );
           })}
         </SimpleGrid>
-      </VStack>
-    );
-  }
+      )}
+    </VStack>
+  );
+
+  const sections = [
+    {
+      id: 'vehicles',
+      label: 'Parc véhicules',
+      icon: FiTool,
+      description: 'Vue d’ensemble',
+      render: renderVehiclesSection
+    },
+    {
+      id: 'history',
+      label: 'Historique',
+      icon: FiFileText,
+      description: 'Usages récents',
+      render: renderHistorySection
+    },
+    {
+      id: 'maintenance',
+      label: 'Entretien',
+      icon: FiTool,
+      description: 'Planification & suivi',
+      render: renderMaintenanceSection
+    },
+    {
+      id: 'administrative',
+      label: 'Administratif',
+      icon: FiAlertTriangle,
+      description: 'Documents & obligations',
+      render: renderAdministrativeSection
+    },
+    {
+      id: 'checkins',
+      label: 'Pointages',
+      icon: FiClock,
+      description: 'Sessions actives',
+      render: renderCheckinsSection
+    }
+  ];
+
+  const headerActions = [
+    <Button
+      key="refresh"
+      leftIcon={<FiRefreshCw />}
+      variant="outline"
+      size="sm"
+      onClick={reloadVehicles}
+      isLoading={loading}
+    >
+      Actualiser
+    </Button>,
+    <Button
+      key="manage"
+      leftIcon={<FiEdit />}
+      colorScheme="blue"
+      size="sm"
+      onClick={() => navigate('/dashboard/vehicules')}
+    >
+      Gestion complète
+    </Button>
+  ];
 
   return (
-    <VStack align="start" spacing={4} w="full">
-      {/* Header */}
-      <HStack justify="space-between" w="full">
-        <HStack>
-          <FiTool />
-          <Heading size="sm">Entretien - {selectedVehicle}</Heading>
-        </HStack>
-        <Button size="sm" variant="outline" onClick={() => setSelectedVehicle(null)}>
-          ← Retour
-        </Button>
-      </HStack>
+    <>
+      <WorkspaceLayout
+        title="RétroBus"
+        subtitle="Suivi d'entretien, d'usages et de disponibilité du parc."
+        sections={sections}
+        defaultSectionId="vehicles"
+        sidebarTitle="RétroBus"
+        sidebarSubtitle="Parc & maintenance"
+        sidebarTitleIcon={FiTool}
+        versionLabel="RétroBus v3"
+        headerActions={headerActions}
+      />
 
-      {loading ? (
-        <HStack spacing={3}>
-          <Spinner size="sm" />
-          <Text>Chargement...</Text>
-        </HStack>
-      ) : (
-        <>
-          {/* Summary Stats */}
-          {summary && (
-            <SimpleGrid columns={{ base: 2, md: 4 }} gap={3} w="full">
-              <Card>
-                <CardBody>
-                  <Stat>
-                    <StatLabel fontSize="xs">Coût total</StatLabel>
-                    <StatNumber fontSize="lg">{summary.totalCost.toFixed(2)}€</StatNumber>
-                  </Stat>
-                </CardBody>
-              </Card>
-              <Card>
-                <CardBody>
-                  <Stat>
-                    <StatLabel fontSize="xs">Entretiens</StatLabel>
-                    <StatNumber fontSize="lg">{summary.maintenanceCount}</StatNumber>
-                  </Stat>
-                </CardBody>
-              </Card>
-              <Card>
-                <CardBody>
-                  <Stat>
-                    <StatLabel fontSize="xs">Tâches en retard</StatLabel>
-                    <StatNumber fontSize="lg" color="red.500">{summary.overdueTasks}</StatNumber>
-                  </Stat>
-                </CardBody>
-              </Card>
-              <Card>
-                <CardBody>
-                  <Stat>
-                    <StatLabel fontSize="xs">En attente</StatLabel>
-                    <StatNumber fontSize="lg" color="orange.500">{summary.pendingTasks}</StatNumber>
-                  </Stat>
-                </CardBody>
-              </Card>
-            </SimpleGrid>
-          )}
+      <Modal isOpen={editTechOpen} onClose={() => setEditTechOpen(false)} size="lg">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Informations techniques : {editTechVehicle?.parc}</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack align="stretch" spacing={4}>
+              <FormLabel>Niveau actuel du gasoil (%)</FormLabel>
+              <Box>
+                <Box position="relative" h="60px" mb={6}>
+                  <Box position="absolute" top="20px" left="0" right="0" h="2px" bg="gray.300" />
+                  {[0, 50, 100].map((val) => (
+                    <Box
+                      key={val}
+                      position="absolute"
+                      left={`${val}%`}
+                      top="12px"
+                      transform="translateX(-50%)"
+                      textAlign="center"
+                    >
+                      <Box w="3px" h="16px" bg="gray.800" mx="auto" mb={1} />
+                      <Text fontSize="xs" fontWeight="bold">{val}%</Text>
+                    </Box>
+                  ))}
+                  {Array.from({ length: 99 }).map((_, i) => {
+                    const val = i + 1;
+                    const isBig = val === 50;
+                    if (isBig) return null;
+                    return (
+                      <Box
+                        key={`small-${val}`}
+                        position="absolute"
+                        left={`${val}%`}
+                        top="16px"
+                        transform="translateX(-50%)"
+                        w="1px"
+                        h="8px"
+                        bg="gray.400"
+                      />
+                    );
+                  })}
+                  <Box
+                    position="absolute"
+                    left={`${editTechGasoil}%`}
+                    top="0"
+                    transform="translateX(-50%)"
+                    display="flex"
+                    flexDirection="column"
+                    alignItems="center"
+                  >
+                    <Text fontSize="sm" fontWeight="bold" color="blue.600">{editTechGasoil}%</Text>
+                    <Box w="2px" h="20px" bg="blue.600" mt={1} />
+                  </Box>
+                </Box>
 
-          {/* Tabs within vehicle */}
-          <Tabs w="full" colorScheme="blue">
-            <TabList>
-              <Tab>Historique ({maintenance.length})</Tab>
-              <Tab>Planning ({schedule.length})</Tab>
-            </TabList>
+                <Slider value={editTechGasoil} onChange={setEditTechGasoil} min={0} max={100} step={1}>
+                  <SliderTrack>
+                    <SliderFilledTrack />
+                  </SliderTrack>
+                  <SliderThumb />
+                </Slider>
+              </Box>
 
-            <TabPanels>
-              {/* Maintenance History */}
-              <TabPanel>
-                <VStack align="stretch" spacing={3}>
-                  <HStack justify="space-between">
-                    <Heading size="sm">Historique d'entretien</Heading>
-                    <Button size="sm" colorScheme="green" onClick={() => setShowAddMaintenance(true)}>
-                      + Ajouter
-                    </Button>
-                  </HStack>
+              <Divider />
+              <CaracteristiquesEditor caracs={editTechCaracs} onChange={setEditTechCaracs} />
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="ghost" mr={3} onClick={() => setEditTechOpen(false)}>Annuler</Button>
+            <Button
+              colorScheme="blue"
+              isLoading={editTechSaving}
+              onClick={async () => {
+                try {
+                  setEditTechSaving(true);
+                  const nextCaracs = Array.isArray(editTechCaracs) ? [...editTechCaracs] : [];
+                  const gasoilIdx = nextCaracs.findIndex(c => c.label === 'Niveau gasoil');
+                  if (gasoilIdx >= 0) {
+                    nextCaracs[gasoilIdx] = { ...nextCaracs[gasoilIdx], value: String(editTechGasoil) };
+                  } else {
+                    nextCaracs.push({ label: 'Niveau gasoil', value: String(editTechGasoil) });
+                  }
 
-                  {maintenance.length === 0 ? (
-                    <Alert status="info">
-                      <AlertIcon />
-                      Aucun entretien enregistré
-                    </Alert>
-                  ) : (
-                    <VStack align="stretch" spacing={2} maxH="500px" overflowY="auto">
-                      {maintenance.map(m => (
-                        <Card key={m.id} variant="outline" size="sm">
-                          <CardBody py={2}>
-                            <HStack justify="space-between" mb={1}>
-                              <HStack spacing={2}>
-                                <Badge colorScheme={maintenanceTypes[m.type]?.color || 'gray'}>
-                                  {maintenanceTypes[m.type]?.label || m.type}
-                                </Badge>
-                                <Text fontSize="sm" fontWeight="600">
-                                  {new Date(m.date).toLocaleDateString('fr-FR')}
-                                </Text>
-                              </HStack>
-                              <Badge colorScheme={statusColors[m.status] || 'gray'}>
-                                {m.status}
-                              </Badge>
-                            </HStack>
-                            <Text fontSize="sm" color="gray.700">{m.description}</Text>
-                            <HStack spacing={4} mt={2} fontSize="xs" color="gray.600">
-                              {m.cost > 0 && <Text>💰 {m.cost.toFixed(2)}€</Text>}
-                              {m.mileage && <Text>📍 {m.mileage} km</Text>}
-                              {m.performedBy && <Text>👤 {m.performedBy}</Text>}
-                              {m.nextDueDate && <Text>📅 Prochainement: {new Date(m.nextDueDate).toLocaleDateString('fr-FR')}</Text>}
-                            </HStack>
-                          </CardBody>
-                        </Card>
-                      ))}
-                    </VStack>
-                  )}
-                </VStack>
+                  await apiClient.put(`/vehicles/${encodeURIComponent(editTechVehicle.parc)}`, {
+                    caracteristiques: JSON.stringify(nextCaracs)
+                  });
 
-                {/* Add Maintenance Modal */}
-                <Modal isOpen={showAddMaintenance} onClose={() => setShowAddMaintenance(false)}>
-                  <ModalOverlay />
-                  <ModalContent>
-                    <ModalHeader>Ajouter un entretien</ModalHeader>
-                    <ModalCloseButton />
-                    <ModalBody>
-                      <VStack spacing={3}>
-                        <Box w="full">
-                          <FormLabel>Type</FormLabel>
-                          <select
-                            value={maintenanceForm.type}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, type: e.target.value })}
-                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                          >
-                            {Object.entries(maintenanceTypes).map(([k, v]) => (
-                              <option key={k} value={k}>{v.label}</option>
-                            ))}
-                          </select>
-                        </Box>
-                        <Box w="full">
-                          <FormLabel>Description *</FormLabel>
-                          <textarea
-                            value={maintenanceForm.description}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, description: e.target.value })}
-                            placeholder="Détails de l'intervention..."
-                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc', minHeight: '80px' }}
-                          />
-                        </Box>
-                        <Box w="full">
-                          <FormLabel>Coût (€)</FormLabel>
-                          <input
-                            type="number"
-                            value={maintenanceForm.cost}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, cost: e.target.value })}
-                            placeholder="0.00"
-                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                          />
-                        </Box>
-                        <Box w="full">
-                          <FormLabel>Kilométrage</FormLabel>
-                          <input
-                            type="number"
-                            value={maintenanceForm.mileage}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, mileage: e.target.value })}
-                            placeholder="12345"
-                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                          />
-                        </Box>
-                        <Box w="full">
-                          <FormLabel>Effectué par</FormLabel>
-                          <input
-                            type="text"
-                            value={maintenanceForm.performedBy}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, performedBy: e.target.value })}
-                            placeholder="Nom du mécanicien/atelier"
-                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                          />
-                        </Box>
-                        <Box w="full">
-                          <FormLabel>Lieu</FormLabel>
-                          <input
-                            type="text"
-                            value={maintenanceForm.location}
-                            onChange={(e) => setMaintenanceForm({ ...maintenanceForm, location: e.target.value })}
-                            placeholder="Garage, atelier..."
-                            style={{ width: '100%', padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-                          />
-                        </Box>
-                        <Box w="full">
-                          <FormLabel>Statut</FormLabel>
+                  setVehicles(prev => prev.map(v => {
+                    const parcKey = v.parc || v.id || v.slug;
+                    if (parcKey === editTechVehicle.parc) {
+                      return { ...v, caracteristiques: JSON.stringify(nextCaracs) };
+                    }
+                    return v;
+                  }));
+
+                  toast({ status: 'success', title: 'Caractéristiques mises à jour' });
+                  setEditTechSaving(false);
+                  setEditTechOpen(false);
+                } catch (e) {
+                  toast({ status: 'error', title: 'Erreur lors de la mise à jour', description: e.message });
+                  setEditTechSaving(false);
+                }
+              }}
+            >
+              Enregistrer
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+    </>
+  );
                           <select
                             value={maintenanceForm.status}
                             onChange={(e) => setMaintenanceForm({ ...maintenanceForm, status: e.target.value })}
@@ -521,22 +574,25 @@ export default function RetroBus() {
   const [editTechGasoil, setEditTechGasoil] = useState(0);
   const [editTechSaving, setEditTechSaving] = useState(false);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const list = await apiClient.get('/vehicles');
-        if (!mounted) return;
-        setVehicles(Array.isArray(list) ? list : (list?.vehicles || []));
-      } catch (e) {
-        toast({ status: 'error', title: "Chargement des véhicules", description: e.message || 'Impossible de charger la liste' });
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => { mounted = false; };
+  const reloadVehicles = useCallback(async () => {
+    try {
+      setLoading(true);
+      const list = await apiClient.get('/vehicles');
+      setVehicles(Array.isArray(list) ? list : (list?.vehicles || []));
+    } catch (e) {
+      toast({
+        status: 'error',
+        title: "Chargement des véhicules",
+        description: e.message || 'Impossible de charger la liste'
+      });
+    } finally {
+      setLoading(false);
+    }
   }, [toast]);
+
+  useEffect(() => {
+    reloadVehicles();
+  }, [reloadVehicles]);
 
   // Charger l'état de pointage (actif) pour chaque véhicule — lazy/background
   useEffect(() => {

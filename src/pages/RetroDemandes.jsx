@@ -17,11 +17,6 @@ import {
   Card,
   CardHeader,
   CardBody,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
   FormControl,
   FormLabel,
   Input,
@@ -45,7 +40,6 @@ import {
   ModalFooter,
   ModalCloseButton,
   useDisclosure,
-  Icon,
   IconButton,
   Divider,
   Grid,
@@ -55,16 +49,10 @@ import {
 import {
   DeleteIcon,
   EditIcon,
-  ViewIcon,
-  CheckIcon,
-  CloseIcon,
-  DownloadIcon
+  ViewIcon
 } from "@chakra-ui/icons";
 import {
   FiPlus,
-  FiEdit2,
-  FiTrash2,
-  FiEye,
   FiDownload,
   FiFileText
 } from "react-icons/fi";
@@ -83,7 +71,6 @@ const RetroDemandes = () => {
   const [loading, setLoading] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [editingId, setEditingId] = useState(null);
-  const [tabIndex, setTabIndex] = useState(0);
   
   const [formData, setFormData] = useState({
     title: "",
@@ -272,267 +259,300 @@ const RetroDemandes = () => {
   const isMobile = useBreakpointValue({ base: true, md: false });
   const tableSize = isMobile ? "sm" : "md";
 
-  const renderRetroDemandesSection = () => (
+  const renderMyRequestsSection = () => (
     <VStack align="stretch" spacing={6}>
       <Card>
-          <CardHeader pb={0}>
-            <Tabs index={tabIndex} onChange={setTabIndex} variant="enclosed">
-              <TabList>
-                <Tab>
-                  <Icon as={FiFileText} mr={2} />
-                  RétroDemande
-                </Tab>
-                {canViewRecap() && (
-                  <Tab>
-                    <Icon as={FiDownload} mr={2} />
-                    Récapitulatif
-                  </Tab>
-                )}
-              </TabList>
-
-              <TabPanels>
-                {/* ONGLET 1: MES DEMANDES */}
-                <TabPanel>
-                  <Box pt={4}>
-                    {loading && requests.length === 0 ? (
-                      <Flex justify="center" py={10}>
-                        <Spinner />
-                      </Flex>
-                    ) : requests.length === 0 ? (
-                      <Box textAlign="center" py={10} color="gray.500">
-                        <Text mb={4}>Aucune demande pour le moment</Text>
-                        <Button
-                          colorScheme="blue"
+        <CardHeader pb={0}>
+          <VStack align="flex-start" spacing={1}>
+            <Heading size="md">Mes demandes</Heading>
+            <Text color="gray.600">Suivez, modifiez ou créez vos RétroDemandes.</Text>
+          </VStack>
+        </CardHeader>
+        <CardBody>
+          {loading && requests.length === 0 ? (
+            <Flex justify="center" py={10}>
+              <Spinner />
+            </Flex>
+          ) : requests.length === 0 ? (
+            <Box textAlign="center" py={10} color="gray.500">
+              <Text mb={4}>Aucune demande pour le moment</Text>
+              <Button
+                colorScheme="blue"
+                size="sm"
+                leftIcon={<FiPlus />}
+                onClick={handleNew}
+              >
+                Créer une demande
+              </Button>
+            </Box>
+          ) : isMobile ? (
+            <SimpleGrid spacing={4} columns={1}>
+              {requests.map((req) => (
+                <Card key={req.id} variant="outline">
+                  <CardBody>
+                    <VStack align="start" spacing={3}>
+                      <HStack justify="space-between" width="100%">
+                        <Heading size="sm">{req.title}</Heading>
+                        {getStatusBadge(req.status)}
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        {req.description}
+                      </Text>
+                      <HStack spacing={2} fontSize="xs" color="gray.500">
+                        <Badge>{categoryLabel(req.category)}</Badge>
+                        <Text>
+                          {new Date(req.createdAt).toLocaleDateString()}
+                        </Text>
+                      </HStack>
+                      <HStack spacing={2} width="100%" pt={2}>
+                        <IconButton
+                          icon={<ViewIcon />}
                           size="sm"
-                          leftIcon={<FiPlus />}
-                          onClick={handleNew}
+                          variant="ghost"
+                          onClick={() => handleViewDetails(req)}
+                          title="Voir détails"
+                        />
+                        {req.status === "PENDING" && (
+                          <>
+                            <IconButton
+                              icon={<EditIcon />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="blue"
+                              onClick={() => handleEdit(req)}
+                              title="Éditer"
+                            />
+                            <IconButton
+                              icon={<DeleteIcon />}
+                              size="sm"
+                              variant="ghost"
+                              colorScheme="red"
+                              onClick={() => handleDelete(req.id)}
+                              title="Supprimer"
+                            />
+                          </>
+                        )}
+                      </HStack>
+                    </VStack>
+                  </CardBody>
+                </Card>
+              ))}
+            </SimpleGrid>
+          ) : (
+            <Box overflowX="auto">
+              <Table size={tableSize} variant="striped">
+                <Thead>
+                  <Tr>
+                    <Th>Titre</Th>
+                    <Th>Catégorie</Th>
+                    <Th>Priorité</Th>
+                    <Th>Statut</Th>
+                    <Th>Date</Th>
+                    <Th>Actions</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {requests.map((req) => (
+                    <Tr key={req.id}>
+                      <Td fontWeight="medium">{req.title}</Td>
+                      <Td fontSize="sm">{categoryLabel(req.category)}</Td>
+                      <Td>
+                        <Badge
+                          colorScheme={
+                            req.priority === "URGENT"
+                              ? "red"
+                              : req.priority === "HIGH"
+                              ? "orange"
+                              : req.priority === "NORMAL"
+                              ? "blue"
+                              : "gray"
+                          }
                         >
-                          Créer une demande
-                        </Button>
-                      </Box>
-                    ) : isMobile ? (
-                      // Vue mobile : Cards
-                      <SimpleGrid spacing={4} columns={1}>
-                        {requests.map((req) => (
-                          <Card key={req.id} variant="outline">
-                            <CardBody>
-                              <VStack align="start" spacing={3}>
-                                <HStack justify="space-between" width="100%">
-                                  <Heading size="sm">{req.title}</Heading>
-                                  {getStatusBadge(req.status)}
-                                </HStack>
-                                <Text fontSize="sm" color="gray.600">
-                                  {req.description}
-                                </Text>
-                                <HStack spacing={2} fontSize="xs" color="gray.500">
-                                  <Badge>{categoryLabel(req.category)}</Badge>
-                                  <Text>
-                                    {new Date(req.createdAt).toLocaleDateString()}
-                                  </Text>
-                                </HStack>
-                                <HStack spacing={2} width="100%" pt={2}>
-                                  <IconButton
-                                    icon={<ViewIcon />}
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleViewDetails(req)}
-                                    title="Voir détails"
-                                  />
-                                  {req.status === "PENDING" && (
-                                    <>
-                                      <IconButton
-                                        icon={<EditIcon />}
-                                        size="sm"
-                                        variant="ghost"
-                                        colorScheme="blue"
-                                        onClick={() => handleEdit(req)}
-                                        title="Éditer"
-                                      />
-                                      <IconButton
-                                        icon={<DeleteIcon />}
-                                        size="sm"
-                                        variant="ghost"
-                                        colorScheme="red"
-                                        onClick={() => handleDelete(req.id)}
-                                        title="Supprimer"
-                                      />
-                                    </>
-                                  )}
-                                </HStack>
-                              </VStack>
-                            </CardBody>
-                          </Card>
-                        ))}
-                      </SimpleGrid>
-                    ) : (
-                      // Vue desktop : Table
-                      <Box overflowX="auto">
-                        <Table size={tableSize} variant="striped">
-                          <Thead>
-                            <Tr>
-                              <Th>Titre</Th>
-                              <Th>Catégorie</Th>
-                              <Th>Priorité</Th>
-                              <Th>Statut</Th>
-                              <Th>Date</Th>
-                              <Th>Actions</Th>
-                            </Tr>
-                          </Thead>
-                          <Tbody>
-                            {requests.map((req) => (
-                              <Tr key={req.id}>
-                                <Td fontWeight="medium">{req.title}</Td>
-                                <Td fontSize="sm">{categoryLabel(req.category)}</Td>
-                                <Td>
-                                  <Badge
-                                    colorScheme={
-                                      req.priority === "URGENT"
-                                        ? "red"
-                                        : req.priority === "HIGH"
-                                        ? "orange"
-                                        : req.priority === "NORMAL"
-                                        ? "blue"
-                                        : "gray"
-                                    }
-                                  >
-                                    {req.priority}
-                                  </Badge>
-                                </Td>
-                                <Td>{getStatusBadge(req.status)}</Td>
-                                <Td fontSize="sm">
-                                  {new Date(req.createdAt).toLocaleDateString()}
-                                </Td>
-                                <Td>
-                                  <HStack spacing={2}>
-                                    <IconButton
-                                      icon={<ViewIcon />}
-                                      size="sm"
-                                      variant="ghost"
-                                      onClick={() => handleViewDetails(req)}
-                                      title="Voir détails"
-                                    />
-                                    {req.status === "PENDING" && (
-                                      <>
-                                        <IconButton
-                                          icon={<EditIcon />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="blue"
-                                          onClick={() => handleEdit(req)}
-                                          title="Éditer"
-                                        />
-                                        <IconButton
-                                          icon={<DeleteIcon />}
-                                          size="sm"
-                                          variant="ghost"
-                                          colorScheme="red"
-                                          onClick={() => handleDelete(req.id)}
-                                          title="Supprimer"
-                                        />
-                                      </>
-                                    )}
-                                  </HStack>
-                                </Td>
-                              </Tr>
-                            ))}
-                          </Tbody>
-                        </Table>
-                      </Box>
-                    )}
-                  </Box>
-                </TabPanel>
-
-                {/* ONGLET 2: RÉCAPITULATIF (Admin only) */}
-                {canViewRecap() && (
-                  <TabPanel>
-                    <Box pt={4}>
-                      {loading && allRequests.length === 0 ? (
-                        <Flex justify="center" py={10}>
-                          <Spinner />
-                        </Flex>
-                      ) : allRequests.length === 0 ? (
-                        <Box textAlign="center" py={10} color="gray.500">
-                          <Text>Aucune demande</Text>
-                        </Box>
-                      ) : isMobile ? (
-                        // Vue mobile : Cards
-                        <SimpleGrid spacing={4} columns={1}>
-                          {allRequests.map((req) => (
-                            <Card key={req.id} variant="outline">
-                              <CardBody>
-                                <VStack align="start" spacing={3}>
-                                  <HStack justify="space-between" width="100%">
-                                    <Heading size="sm">{req.title}</Heading>
-                                    {getStatusBadge(req.status)}
-                                  </HStack>
-                                  <Text fontSize="sm" color="gray.600">
-                                    {req.user?.name || "Anonyme"}
-                                  </Text>
-                                  <HStack spacing={2} fontSize="xs" color="gray.500">
-                                    <Badge>{categoryLabel(req.category)}</Badge>
-                                    <Text>
-                                      {new Date(req.createdAt).toLocaleDateString()}
-                                    </Text>
-                                  </HStack>
-                                </VStack>
-                              </CardBody>
-                            </Card>
-                          ))}
-                        </SimpleGrid>
-                      ) : (
-                        // Vue desktop : Table
-                        <Box overflowX="auto">
-                          <Table size={tableSize} variant="striped">
-                            <Thead>
-                              <Tr>
-                                <Th>Titre</Th>
-                                <Th>Utilisateur</Th>
-                                <Th>Catégorie</Th>
-                                <Th>Priorité</Th>
-                                <Th>Statut</Th>
-                                <Th>Date</Th>
-                              </Tr>
-                            </Thead>
-                            <Tbody>
-                              {allRequests.map((req) => (
-                                <Tr key={req.id}>
-                                  <Td fontWeight="medium">{req.title}</Td>
-                                  <Td fontSize="sm">{req.user?.name || "Anonyme"}</Td>
-                                  <Td fontSize="sm">
-                                    {categoryLabel(req.category)}
-                                  </Td>
-                                  <Td>
-                                    <Badge
-                                      colorScheme={
-                                        req.priority === "URGENT"
-                                          ? "red"
-                                          : req.priority === "HIGH"
-                                          ? "orange"
-                                          : req.priority === "NORMAL"
-                                          ? "blue"
-                                          : "gray"
-                                      }
-                                    >
-                                      {req.priority}
-                                    </Badge>
-                                  </Td>
-                                  <Td>{getStatusBadge(req.status)}</Td>
-                                  <Td fontSize="sm">
-                                    {new Date(req.createdAt).toLocaleDateString()}
-                                  </Td>
-                                </Tr>
-                              ))}
-                            </Tbody>
-                          </Table>
-                        </Box>
-                      )}
-                    </Box>
-                  </TabPanel>
-                )}
-              </TabPanels>
-            </Tabs>
-          </CardHeader>
+                          {req.priority}
+                        </Badge>
+                      </Td>
+                      <Td>{getStatusBadge(req.status)}</Td>
+                      <Td fontSize="sm">
+                        {new Date(req.createdAt).toLocaleDateString()}
+                      </Td>
+                      <Td>
+                        <HStack spacing={2}>
+                          <IconButton
+                            icon={<ViewIcon />}
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleViewDetails(req)}
+                            title="Voir détails"
+                          />
+                          {req.status === "PENDING" && (
+                            <>
+                              <IconButton
+                                icon={<EditIcon />}
+                                size="sm"
+                                variant="ghost"
+                                colorScheme="blue"
+                                onClick={() => handleEdit(req)}
+                                title="Éditer"
+                              />
+                              <IconButton
+                                icon={<DeleteIcon />}
+                                size="sm"
+                                variant="ghost"
+                                colorScheme="red"
+                                onClick={() => handleDelete(req.id)}
+                                title="Supprimer"
+                              />
+                            </>
+                          )}
+                        </HStack>
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </Box>
+          )}
+        </CardBody>
       </Card>
+    </VStack>
+  );
+
+  const renderRecapSection = () => (
+    <VStack align="stretch" spacing={6}>
+      <Card>
+        <CardHeader pb={0}>
+          <VStack align="flex-start" spacing={1}>
+            <Heading size="md">Récapitulatif global</Heading>
+            <Text color="gray.600">Vue consolidée pour le bureau.</Text>
+          </VStack>
+        </CardHeader>
+        <CardBody>
+          {loading && allRequests.length === 0 ? (
+            <Flex justify="center" py={10}>
+              <Spinner />
+            </Flex>
+          ) : allRequests.length === 0 ? (
+            <Box textAlign="center" py={10} color="gray.500">
+              <Text>Aucune demande</Text>
+            </Box>
+          ) : isMobile ? (
+            <SimpleGrid spacing={4} columns={1}>
+              {allRequests.map((req) => (
+                <Card key={req.id} variant="outline">
+                  <CardBody>
+                    <VStack align="start" spacing={3}>
+                      <HStack justify="space-between" width="100%">
+                        <Heading size="sm">{req.title}</Heading>
+                        {getStatusBadge(req.status)}
+                      </HStack>
+                      <Text fontSize="sm" color="gray.600">
+                        {req.user?.name || "Anonyme"}
+                      </Text>
+                      <HStack spacing={2} fontSize="xs" color="gray.500">
+                        <Badge>{categoryLabel(req.category)}</Badge>
+                        <Text>
+                          {new Date(req.createdAt).toLocaleDateString()}
+                        </Text>
+                      </HStack>
+                    </VStack>
+                  </CardBody>
+                </Card>
+              ))}
+            </SimpleGrid>
+          ) : (
+            <Box overflowX="auto">
+              <Table size={tableSize} variant="striped">
+                <Thead>
+                  <Tr>
+                    <Th>Titre</Th>
+                    <Th>Utilisateur</Th>
+                    <Th>Catégorie</Th>
+                    <Th>Priorité</Th>
+                    <Th>Statut</Th>
+                    <Th>Date</Th>
+                  </Tr>
+                </Thead>
+                <Tbody>
+                  {allRequests.map((req) => (
+                    <Tr key={req.id}>
+                      <Td fontWeight="medium">{req.title}</Td>
+                      <Td fontSize="sm">{req.user?.name || "Anonyme"}</Td>
+                      <Td fontSize="sm">{categoryLabel(req.category)}</Td>
+                      <Td>
+                        <Badge
+                          colorScheme={
+                            req.priority === "URGENT"
+                              ? "red"
+                              : req.priority === "HIGH"
+                              ? "orange"
+                              : req.priority === "NORMAL"
+                              ? "blue"
+                              : "gray"
+                          }
+                        >
+                          {req.priority}
+                        </Badge>
+                      </Td>
+                      <Td>{getStatusBadge(req.status)}</Td>
+                      <Td fontSize="sm">
+                        {new Date(req.createdAt).toLocaleDateString()}
+                      </Td>
+                    </Tr>
+                  ))}
+                </Tbody>
+              </Table>
+            </Box>
+          )}
+        </CardBody>
+      </Card>
+    </VStack>
+  );
+
+  const sections = [
+    {
+      id: "my-requests",
+      label: "Mes demandes",
+      icon: FiFileText,
+      description: "Création & suivi",
+      render: renderMyRequestsSection
+    }
+  ];
+
+  if (canViewRecap()) {
+    sections.push({
+      id: "recap",
+      label: "Récapitulatif",
+      icon: FiDownload,
+      description: "Vue bureau",
+      render: renderRecapSection
+    });
+  }
+
+  const headerActions = [
+    <Button
+      key="new"
+      leftIcon={<FiPlus />}
+      colorScheme="blue"
+      onClick={handleNew}
+      size={isMobile ? "sm" : "md"}
+    >
+      Nouvelle demande
+    </Button>
+  ];
+
+  return (
+    <>
+      <WorkspaceLayout
+        title="RétroDemandes"
+        subtitle="Gestion de vos demandes et suivi global"
+        sections={sections}
+        defaultSectionId="my-requests"
+        sidebarTitle="RétroDemandes"
+        sidebarSubtitle="Support & demandes"
+        sidebarTitleIcon={FiFileText}
+        versionLabel="RétroDemandes v2"
+        headerActions={headerActions}
+      />
 
       <Modal isOpen={isOpen} onClose={onClose} size={isMobile ? "full" : "2xl"}>
         <ModalOverlay />
@@ -670,25 +690,7 @@ const RetroDemandes = () => {
           </ModalBody>
         </ModalContent>
       </Modal>
-    </VStack>
-  );
-
-  return (
-    <WorkspaceLayout
-      title="RétroDemandes"
-      subtitle="Gestion de vos demandes et suivi global"
-      sections={[{ id: "requests", label: "Demandes", icon: FiFileText, render: renderRetroDemandesSection }]}
-      defaultSectionId="requests"
-      sidebarTitle="RétroDemandes"
-      sidebarSubtitle="Support & demandes"
-      sidebarTitleIcon={FiFileText}
-      versionLabel="RétroDemandes v2"
-      headerActions={[
-        <Button key="new" leftIcon={<FiPlus />} colorScheme="blue" onClick={handleNew} size={isMobile ? "sm" : "md"}>
-          Nouvelle demande
-        </Button>
-      ]}
-    />
+    </>
   );
 };
 
