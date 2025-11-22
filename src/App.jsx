@@ -43,6 +43,7 @@ import AttendancePage from "./pages/AttendancePage";
 import AttendanceManager from "./pages/AttendanceManager";
 import RetroDemandes from "./pages/RetroDemandes";
 import PermissionsManager from "./components/PermissionsManager";
+import PermissionsManagement from "./pages/PermissionsManagement";
 
 export default function App() {
   const { isAuthenticated } = useUser();
@@ -101,6 +102,7 @@ export default function App() {
         
         {/* 🔐 Gestion des permissions */}
         <Route path="/dashboard/permissions" element={<RoleProtectedRoute allowedRoles={['ADMIN']}><PermissionsManager /></RoleProtectedRoute>} />
+        <Route path="/dashboard/permissions-management" element={<RoleProtectedRoute allowedRoles={['ADMIN']}><PermissionsManagement /></RoleProtectedRoute>} />
         
         {/* 📧 Communication */}
         <Route path="/dashboard/newsletter" element={<RoleProtectedRoute deniedRoles={['CLIENT', 'GUEST']}><Newsletter /></RoleProtectedRoute>} />

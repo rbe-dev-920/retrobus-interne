@@ -28,7 +28,6 @@ import { canAccess, RESOURCES } from "../lib/permissions";
 import { useUserPermissions } from "../hooks/useUserPermissions";
 import PageLayout from '../components/Layout/PageLayout';
 import ModernCard from '../components/Layout/ModernCard';
-import PermissionsManager from '../components/PermissionsManager';
 
 const cards = [
   {
@@ -117,7 +116,7 @@ const cards = [
   {
     title: "Gestion des Autorisations",
     description: "Rôles et permissions des utilisateurs",
-    to: "/dashboard/myrbe/permissions",
+    to: "/dashboard/permissions-management",
     icon: FiShield,
     color: "red",
     requiredRole: ['ADMIN', 'MANAGER', 'OPERATOR'],
@@ -159,15 +158,6 @@ export default function MyRBE() {
   const { user, roles, customPermissions } = useUser();
   const userRole = roles?.[0] || 'MEMBER';
   const { permissions: userPermissions, loading: permissionsLoading } = useUserPermissions(user?.id);
-  const [showPermissions, setShowPermissions] = React.useState(false);
-  
-  // Détecter si c'est demandé via URL
-  const location = React.useMemo(() => window.location.pathname, []);
-  React.useEffect(() => {
-    if (location.includes('permissions')) {
-      setShowPermissions(true);
-    }
-  }, [location]);
 
   /**
    * Vérifier si une carte doit être affichée
@@ -270,28 +260,8 @@ export default function MyRBE() {
       ]}
     >
       <VStack spacing={8} align="stretch">
-        {/* Section Permissions - Affiche PermissionsManager quand requis */}
-        {showPermissions && (roles?.includes('ADMIN') || roles?.includes('MANAGER') || roles?.includes('OPERATOR')) && (
-          <Box>
-            <Button 
-              mb={4}
-              variant="ghost" 
-              onClick={() => setShowPermissions(false)}
-              size="sm"
-            >
-              ← Retour à MyRBE
-            </Button>
-            <Box bg={useColorModeValue('white', 'gray.800')} borderRadius="md" p={6} borderWidth="1px" borderColor={useColorModeValue('gray.200', 'gray.700')}>
-              <Heading size="md" mb={4}>🛡️ Gestion des Autorisations</Heading>
-              <PermissionsManager />
-            </Box>
-          </Box>
-        )}
-
-        {/* Grille des fonctionnalités - Masquée si permissions affichées */}
-        {!showPermissions && (
-          <>
-            {visibleCards.length > 0 ? (
+        {/* Grille des fonctionnalités */}
+        {visibleCards.length > 0 ? (
               <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6}>
                 {visibleCards.map((card) => (
                   <ModernCard
@@ -301,9 +271,8 @@ export default function MyRBE() {
                     icon={card.icon}
                     color={card.color}
                     badge={card.badge}
-                    as={card.title === 'Gestion des Autorisations' ? 'button' : RouterLink}
-                    to={card.title !== 'Gestion des Autorisations' ? card.to : undefined}
-                    onClick={card.title === 'Gestion des Autorisations' ? () => setShowPermissions(true) : undefined}
+                    as={RouterLink}
+                    to={card.to}
                   />
                 ))}
               </SimpleGrid>
@@ -329,11 +298,9 @@ export default function MyRBE() {
                 </Text>
               </Box>
             )}
-          </>
-        )}
         
         {/* Section d'aide */}
-        {!showPermissions && visibleCards.length > 0 && (
+        {visibleCards.length > 0 && (
           <VStack spacing={6}>
             <Box 
               bg={alertBg}
