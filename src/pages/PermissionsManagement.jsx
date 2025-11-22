@@ -14,13 +14,6 @@ import {
   Badge,
   IconButton,
   useToast,
-  Modal,
-  ModalOverlay,
-  ModalContent,
-  ModalHeader,
-  ModalCloseButton,
-  ModalBody,
-  ModalFooter,
   FormControl,
   FormLabel,
   Checkbox,
@@ -30,7 +23,6 @@ import {
   Text,
   Spinner,
   Center,
-  useDisclosure,
   Tabs,
   TabList,
   TabPanels,
@@ -96,7 +88,6 @@ export default function PermissionsManagement() {
   const [userPermissions, setUserPermissions] = useState([]);
   const [permissionsLoading, setPermissionsLoading] = useState(false);
   const toast = useToast();
-  const { isOpen, onOpen, onClose } = useDisclosure();
 
   // Charger les utilisateurs
   useEffect(() => {
@@ -152,7 +143,6 @@ export default function PermissionsManagement() {
   const handleSelectUser = async (user) => {
     setSelectedUser(user);
     await loadUserPermissions(user.id);
-    onOpen();
   };
 
   const handlePermissionChange = async (resource, action, granted) => {
