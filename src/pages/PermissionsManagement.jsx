@@ -19,16 +19,18 @@ import {
   Checkbox,
   Card,
   CardBody,
+  CardHeader,
   SimpleGrid,
   Text,
   Spinner,
   Center,
-  Tabs,
-  TabList,
-  TabPanels,
-  Tab,
-  TabPanel,
   Heading,
+  Alert,
+  AlertIcon,
+  Container,
+  Flex,
+  Spacer,
+  useColorModeValue,
 } from '@chakra-ui/react';
 import {
   FiUsers,
@@ -38,67 +40,122 @@ import {
   FiPlus,
   FiShield,
   FiRefreshCw,
+  FiAlertCircle,
 } from 'react-icons/fi';
 import { api } from '../api';
-import WorkspaceLayout from '../components/Layout/WorkspaceLayout';
+import { useUser } from '../context/UserContext';
 
-const PERMISSIONS = {
+// === ADMIN ROLES ===
+const ADMIN_ROLES = ['ADMIN', 'PRESIDENT', 'VICE_PRESIDENT', 'TRESORIER', 'SECRETAIRE_GENERAL'];
+
+// === RESOURCES & PERMISSIONS ===
+const RESOURCE_CATEGORIES = {
   VEHICLES: {
-    READ: 'Lire les véhicules',
-    CREATE: 'Créer des véhicules',
-    EDIT: 'Modifier les véhicules',
-    DELETE: 'Supprimer les véhicules',
+    label: '🚗 Véhicules',
+    permissions: {
+      READ: 'Consulter',
+      CREATE: 'Créer',
+      EDIT: 'Modifier',
+      DELETE: 'Supprimer',
+    }
   },
   FINANCE: {
-    READ: 'Lire les finances',
-    CREATE: 'Créer des transactions',
-    EDIT: 'Modifier les transactions',
-    DELETE: 'Supprimer les transactions',
+    label: '💰 Finances',
+    permissions: {
+      READ: 'Consulter',
+      CREATE: 'Créer transactions',
+      EDIT: 'Modifier',
+      DELETE: 'Supprimer',
+    }
   },
   EVENTS: {
-    READ: 'Lire les événements',
-    CREATE: 'Créer des événements',
-    EDIT: 'Modifier les événements',
-    DELETE: 'Supprimer les événements',
+    label: '📅 Événements',
+    permissions: {
+      READ: 'Consulter',
+      CREATE: 'Créer',
+      EDIT: 'Modifier',
+      DELETE: 'Supprimer',
+    }
   },
   STOCK: {
-    READ: 'Lire le stock',
-    CREATE: 'Créer des articles',
-    EDIT: 'Modifier le stock',
-    DELETE: 'Supprimer des articles',
+    label: '📦 Stock',
+    permissions: {
+      READ: 'Consulter',
+      CREATE: 'Ajouter articles',
+      EDIT: 'Modifier',
+      DELETE: 'Supprimer',
+    }
   },
   PLANNING: {
-    READ: 'Lire le planning',
-    CREATE: 'Créer des plannings',
-    EDIT: 'Modifier le planning',
-    DELETE: 'Supprimer le planning',
+    label: '📊 Planning',
+    permissions: {
+      READ: 'Consulter',
+      CREATE: 'Créer',
+      EDIT: 'Modifier',
+      DELETE: 'Supprimer',
+    }
   },
   MEMBERS: {
-    READ: 'Lire les membres',
-    CREATE: 'Ajouter des membres',
-    EDIT: 'Modifier les membres',
-    DELETE: 'Supprimer les membres',
+    label: '👥 Membres',
+    permissions: {
+      READ: 'Consulter',
+      CREATE: 'Ajouter',
+      EDIT: 'Modifier',
+      DELETE: 'Supprimer',
+    }
   },
 };
 
+const getRoleColor = (role) => {
+  const colors = {
+    ADMIN: 'red',
+    PRESIDENT: 'purple',
+    VICE_PRESIDENT: 'indigo',
+    TRESORIER: 'blue',
+    SECRETAIRE_GENERAL: 'cyan',
+    MEMBER: 'gray',
+  };
+  return colors[role] || 'gray';
+};
+
+const getRoleLabel = (role) => {
+  const labels = {
+    ADMIN: '🔴 Admin',
+    PRESIDENT: '👑 Président',
+    VICE_PRESIDENT: '👔 Vice-Président',
+    TRESORIER: '💳 Trésorier',
+    SECRETAIRE_GENERAL: '📋 Secrétaire Général',
+    MEMBER: '👤 Membre',
+  };
+  return labels[role] || role;
+};
+
 export default function PermissionsManagement() {
+  const { user, roles, isAdmin } = useUser();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState(null);
-  const [userPermissions, setUserPermissions] = useState([]);
-  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const [userPermissions, setUserPermissions] = useState({});
+  const [searchTerm, setSearchTerm] = useState('');
   const toast = useToast();
+  const cardBg = useColorModeValue('white', 'gray.800');
+  
+  // Vérifier que l'utilisateur est admin (PRESIDENT ou admin équivalent)
+  const canManage = isAdmin || (user && ADMIN_ROLES.includes(user.role));
 
-  // Charger les utilisateurs
   useEffect(() => {
-    loadUsers();
-  }, []);
+    if (canManage) {
+      loadUsers();
+    }
+  }, [canManage]);
 
   const loadUsers = async () => {
     try {
       setLoading(true);
       const response = await api.get('/api/admin/users');
-      if (response.data?.users) {
+      if (Array.isArray(response.data)) {
+        setUsers(response.data);
+      } else if (response.data?.users) {
         setUsers(response.data.users);
       }
     } catch (error) {
@@ -116,16 +173,9 @@ export default function PermissionsManagement() {
 
   const loadUserPermissions = async (userId) => {
     try {
-      setPermissionsLoading(true);
       const response = await api.get(`/api/admin/users/${userId}/permissions`);
-      if (response.data?.permissions) {
-        // Aplatir les permissions (permanent + temporary + expired)
-        const allPermissions = [
-          ...(response.data.permissions.permanent || []),
-          ...(response.data.permissions.temporary || []),
-          ...(response.data.permissions.expired || [])
-        ];
-        setUserPermissions(allPermissions);
+      if (response.data) {
+        setUserPermissions(response.data);
       }
     } catch (error) {
       console.error('Erreur chargement permissions:', error);
@@ -135,41 +185,38 @@ export default function PermissionsManagement() {
         status: 'error',
         duration: 3000,
       });
-    } finally {
-      setPermissionsLoading(false);
     }
   };
 
-  const handleSelectUser = async (user) => {
+  const handleSelectUser = (user) => {
     setSelectedUser(user);
-    await loadUserPermissions(user.id);
+    loadUserPermissions(user.id);
   };
 
-  const handlePermissionChange = async (resource, action, granted) => {
+  const handlePermissionToggle = async (resource, action, currentValue) => {
+    if (!selectedUser || !canManage) return;
+
     try {
-      if (granted) {
+      const newValue = !currentValue;
+      
+      if (newValue) {
         // Ajouter permission
         await api.post(`/api/admin/users/${selectedUser.id}/permissions`, {
           resource,
-          actions: [action],  // ✅ Envoyer comme array
+          actions: [action],
         });
       } else {
-        // Trouver la permission et la supprimer
-        const perm = userPermissions.find(
-          (p) => p.resource === resource
+        // Supprimer permission
+        await api.delete(
+          `/api/admin/users/${selectedUser.id}/permissions/${resource}/${action}`
         );
-        if (perm) {
-          await api.delete(
-            `/api/admin/users/${selectedUser.id}/permissions/${perm.id}`
-          );
-        }
       }
 
-      // Recharger les permissions
+      // Recharger
       await loadUserPermissions(selectedUser.id);
       toast({
         title: 'Succès',
-        description: 'Permissions mises à jour',
+        description: 'Permission mise à jour',
         status: 'success',
         duration: 2000,
       });
@@ -177,7 +224,7 @@ export default function PermissionsManagement() {
       console.error('Erreur mise à jour permission:', error);
       toast({
         title: 'Erreur',
-        description: 'Impossible de mettre à jour les permissions',
+        description: 'Impossible de mettre à jour la permission',
         status: 'error',
         duration: 3000,
       });
@@ -185,47 +232,51 @@ export default function PermissionsManagement() {
   };
 
   const hasPermission = (resource, action) => {
-    return userPermissions.some(
-      (p) => p.resource === resource
-    );
+    if (!userPermissions[resource]) return false;
+    return userPermissions[resource].includes && 
+           userPermissions[resource].includes(action);
   };
 
-  const getRoleColor = (role) => {
-    const colors = {
-      ADMIN: 'red',
-      PRESIDENT: 'purple',
-      MANAGER: 'blue',
-      OPERATOR: 'green',
-      MEMBER: 'gray',
-    };
-    return colors[role] || 'gray';
-  };
+  const filteredUsers = users.filter(u => 
+    `${u.firstName} ${u.lastName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  if (!canManage) {
+    return (
+      <Container maxW="container.xl" py={8}>
+        <Alert status="error" variant="subtle" flexDirection="column" alignItems="center" justifyContent="center" textAlign="center" height="auto" p={6}>
+          <AlertIcon boxSize="40px" mr={0} mb={4} />
+          <Heading size="md" mb={2}>Accès Refusé</Heading>
+          <Text>Seuls les administrateurs peuvent gérer les permissions.</Text>
+        </Alert>
+      </Container>
+    );
+  }
+
+  if (loading) {
+    return (
+      <Center minH="80vh">
+        <VStack>
+          <Spinner size="xl" color="var(--rbe-red)" />
+          <Text>Chargement...</Text>
+        </VStack>
+      </Center>
+    );
+  }
 
   return (
-    <WorkspaceLayout
-      sections={[
-        {
-          title: 'Utilisateurs',
-          icon: FiUsers,
-          href: '#utilisateurs',
-        },
-        {
-          title: 'Permissions',
-          icon: FiLock,
-          href: '#permissions',
-        },
-      ]}
-    >
-      <VStack spacing={8} align="stretch">
+    <Container maxW="container.xl" py={8}>
+      <VStack spacing={6} align="stretch">
         {/* Header */}
         <Box>
           <HStack justify="space-between" mb={4}>
             <VStack align="start" spacing={1}>
-              <Heading size="lg" display="flex" alignItems="center" gap={2}>
-                <FiShield /> Gestion des Autorisations
+              <Heading size="xl" display="flex" alignItems="center" gap={2}>
+                <FiShield /> Gestion des Permissions
               </Heading>
               <Text color="gray.600" fontSize="sm">
-                Gérez les permissions d'accès par utilisateur
+                Configurez les droits d'accès pour chaque utilisateur
               </Text>
             </VStack>
             <Button
@@ -240,152 +291,124 @@ export default function PermissionsManagement() {
           </HStack>
         </Box>
 
-        {/* Contenu principal */}
-        {loading ? (
-          <Center p={20}>
-            <Spinner size="lg" />
-          </Center>
-        ) : (
-          <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={6} w="full">
-            {/* Liste des utilisateurs */}
-            <Box gridColumn={{ lg: '1 / 2' }}>
-              <Card>
-                <CardBody>
-                  <VStack spacing={4} align="stretch">
-                    <Heading size="md">Utilisateurs</Heading>
-                    <Input
-                      placeholder="Rechercher..."
-                      size="sm"
-                    />
-                    <VStack spacing={2} maxH="600px" overflowY="auto" align="stretch">
-                      {users && users.length > 0 ? (
-                        users.map((user) => (
-                          <Button
-                            key={user.id}
-                            justifyContent="start"
-                            variant={selectedUser?.id === user.id ? 'solid' : 'ghost'}
-                            colorScheme="blue"
-                            onClick={() => handleSelectUser(user)}
-                            isFullWidth
-                            textAlign="left"
-                            p={3}
-                            height="auto"
-                            whiteSpace="normal"
-                          >
-                            <VStack align="start" spacing={0} width="100%">
-                              <HStack justify="space-between" width="100%">
-                                <Text fontWeight="bold" fontSize="sm">
-                                  {user.firstName} {user.lastName}
-                                </Text>
-                                {user.role && (
-                                  <Badge colorScheme={getRoleColor(user.role)} fontSize="xs">
-                                    {user.role}
-                                  </Badge>
-                                )}
-                              </HStack>
-                              <Text fontSize="xs" color="gray.500">
-                                {user.email}
-                              </Text>
-                            </VStack>
-                          </Button>
-                        ))
-                      ) : (
-                        <Text textAlign="center" color="gray.500">
-                          Aucun utilisateur
+        {/* Main Grid */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={6} w="full">
+          {/* Users List */}
+          <Card bg={cardBg}>
+            <CardHeader pb={3}>
+              <Heading size="md" mb={4}>👥 Utilisateurs</Heading>
+              <Input
+                placeholder="Rechercher..."
+                size="sm"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </CardHeader>
+            <CardBody pt={0}>
+              <VStack spacing={2} maxH="600px" overflowY="auto" align="stretch">
+                {filteredUsers.length > 0 ? (
+                  filteredUsers.map((u) => (
+                    <Button
+                      key={u.id}
+                      justifyContent="start"
+                      variant={selectedUser?.id === u.id ? 'solid' : 'ghost'}
+                      colorScheme="blue"
+                      onClick={() => handleSelectUser(u)}
+                      isFullWidth
+                      textAlign="left"
+                      p={3}
+                      height="auto"
+                      whiteSpace="normal"
+                    >
+                      <VStack align="start" spacing={0} width="100%">
+                        <Text fontWeight="bold" fontSize="sm">
+                          {u.firstName} {u.lastName}
                         </Text>
-                      )}
-                    </VStack>
+                        <HStack spacing={2}>
+                          <Text fontSize="xs" color="gray.500">
+                            {u.email}
+                          </Text>
+                          {u.role && (
+                            <Badge colorScheme={getRoleColor(u.role)} fontSize="xs">
+                              {getRoleLabel(u.role)}
+                            </Badge>
+                          )}
+                        </HStack>
+                      </VStack>
+                    </Button>
+                  ))
+                ) : (
+                  <Text textAlign="center" color="gray.500" py={8}>
+                    Aucun utilisateur trouvé
+                  </Text>
+                )}
+              </VStack>
+            </CardBody>
+          </Card>
+
+          {/* Permissions Grid */}
+          <Box gridColumn={{ lg: '2 / 4' }}>
+            {selectedUser ? (
+              <Card bg={cardBg}>
+                <CardHeader>
+                  <VStack align="start" spacing={2}>
+                    <Heading size="md">
+                      {selectedUser.firstName} {selectedUser.lastName}
+                    </Heading>
+                    {selectedUser.role && (
+                      <Badge colorScheme={getRoleColor(selectedUser.role)} fontSize="sm">
+                        {getRoleLabel(selectedUser.role)}
+                      </Badge>
+                    )}
+                  </VStack>
+                </CardHeader>
+                <CardBody pt={0}>
+                  <VStack spacing={6} align="stretch">
+                    {Object.entries(RESOURCE_CATEGORIES).map(([resource, category]) => (
+                      <Box key={resource} p={4} borderWidth={1} borderRadius="md" borderColor="gray.200">
+                        <Heading size="sm" mb={4}>
+                          {category.label}
+                        </Heading>
+                        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={3}>
+                          {Object.entries(category.permissions).map(([action, label]) => (
+                            <HStack key={`${resource}-${action}`} spacing={2}>
+                              <Checkbox
+                                isChecked={hasPermission(resource, action)}
+                                onChange={() => handlePermissionToggle(resource, action, hasPermission(resource, action))}
+                                colorScheme="blue"
+                              />
+                              <Text fontSize="sm">{label}</Text>
+                            </HStack>
+                          ))}
+                        </SimpleGrid>
+                      </Box>
+                    ))}
                   </VStack>
                 </CardBody>
               </Card>
-            </Box>
-
-            {/* Permissions */}
-            <Box gridColumn={{ lg: '2 / 4' }}>
-              {selectedUser ? (
-                <Card>
-                  <CardBody>
-                    <VStack spacing={6} align="stretch">
-                      <HStack justify="space-between">
-                        <VStack align="start" spacing={1}>
-                          <Heading size="md">
-                            {selectedUser.firstName} {selectedUser.lastName}
-                          </Heading>
-                          <Badge colorScheme={getRoleColor(selectedUser.role)}>
-                            {selectedUser.role}
-                          </Badge>
-                        </VStack>
-                      </HStack>
-
-                      {permissionsLoading ? (
-                        <Center p={10}>
-                          <Spinner />
-                        </Center>
-                      ) : (
-                        <Tabs>
-                          <TabList>
-                            {Object.keys(PERMISSIONS).map((resource) => (
-                              <Tab key={resource}>{resource}</Tab>
-                            ))}
-                          </TabList>
-                          <TabPanels>
-                            {Object.keys(PERMISSIONS).map((resource) => (
-                              <TabPanel key={resource}>
-                                <VStack spacing={4} align="stretch">
-                                  {Object.entries(PERMISSIONS[resource]).map(
-                                    ([action, label]) => (
-                                      <HStack
-                                        key={`${resource}-${action}`}
-                                        justify="space-between"
-                                        p={3}
-                                        bg="gray.50"
-                                        borderRadius="md"
-                                      >
-                                        <Text fontSize="sm">{label}</Text>
-                                        <Checkbox
-                                          isChecked={hasPermission(resource, action)}
-                                          onChange={(e) =>
-                                            handlePermissionChange(
-                                              resource,
-                                              action,
-                                              e.target.checked
-                                            )
-                                          }
-                                          colorScheme="blue"
-                                        />
-                                      </HStack>
-                                    )
-                                  )}
-                                </VStack>
-                              </TabPanel>
-                            ))}
-                          </TabPanels>
-                        </Tabs>
-                      )}
-                    </VStack>
-                  </CardBody>
-                </Card>
-              ) : (
-                <Card>
-                  <CardBody>
-                    <Center p={10}>
+            ) : (
+              <Card bg={cardBg}>
+                <CardBody>
+                  <Center p={10}>
+                    <VStack>
+                      <FiAlertCircle size={32} color="gray" />
                       <Text color="gray.500">
-                        Sélectionnez un utilisateur pour voir ses permissions
+                        Sélectionnez un utilisateur pour gérer ses permissions
                       </Text>
-                    </Center>
-                  </CardBody>
-                </Card>
-              )}
-            </Box>
-          </SimpleGrid>
-        )}
+                    </VStack>
+                  </Center>
+                </CardBody>
+              </Card>
+            )}
+          </Box>
+        </SimpleGrid>
 
         {/* Stats */}
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4}>
           <Card>
             <CardBody textAlign="center">
               <Text fontSize="2xl" fontWeight="bold" color="blue.500">
-                {users ? users.length : 0}
+                {users.length}
               </Text>
               <Text fontSize="sm" color="gray.600">
                 Utilisateurs
@@ -394,8 +417,18 @@ export default function PermissionsManagement() {
           </Card>
           <Card>
             <CardBody textAlign="center">
+              <Text fontSize="2xl" fontWeight="bold" color="red.500">
+                {users.filter(u => u.role === 'ADMIN').length}
+              </Text>
+              <Text fontSize="sm" color="gray.600">
+                Admins
+              </Text>
+            </CardBody>
+          </Card>
+          <Card>
+            <CardBody textAlign="center">
               <Text fontSize="2xl" fontWeight="bold" color="purple.500">
-                {users ? users.filter((u) => u.role === 'ADMIN').length : 0}
+                {users.filter(u => ADMIN_ROLES.includes(u.role)).length}
               </Text>
               <Text fontSize="sm" color="gray.600">
                 Administrateurs
@@ -404,18 +437,8 @@ export default function PermissionsManagement() {
           </Card>
           <Card>
             <CardBody textAlign="center">
-              <Text fontSize="2xl" fontWeight="bold" color="green.500">
-                {users ? users.filter((u) => u.role === 'MANAGER').length : 0}
-              </Text>
-              <Text fontSize="sm" color="gray.600">
-                Gestionnaires
-              </Text>
-            </CardBody>
-          </Card>
-          <Card>
-            <CardBody textAlign="center">
               <Text fontSize="2xl" fontWeight="bold" color="gray.500">
-                {users ? users.filter((u) => u.role === 'MEMBER').length : 0}
+                {users.filter(u => u.role === 'MEMBER').length}
               </Text>
               <Text fontSize="sm" color="gray.600">
                 Membres
@@ -424,6 +447,6 @@ export default function PermissionsManagement() {
           </Card>
         </SimpleGrid>
       </VStack>
-    </WorkspaceLayout>
+    </Container>
   );
 }
