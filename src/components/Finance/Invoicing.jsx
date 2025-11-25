@@ -457,44 +457,10 @@ const FinanceInvoicing = () => {
 
       console.log("✅ PDF généré avec succès par Puppeteer!");
 
-      // Ouvrir aperçu dans une nouvelle fenêtre
-      const newWindow = window.open("", "_blank");
-      if (newWindow) {
-        newWindow.document.write(`
-          <html>
-            <head>
-              <title>Aperçu - ${docForm.type === "QUOTE" ? "Devis" : "Facture"} ${docForm.number}</title>
-              <style>
-                body { margin: 0; padding: 10px; font-family: Arial, sans-serif; }
-                #pdfContainer { width: 100%; height: 90vh; }
-                #downloadBtn { 
-                  padding: 10px 20px; 
-                  background: #4CAF50; 
-                  color: white; 
-                  border: none; 
-                  border-radius: 4px; 
-                  cursor: pointer; 
-                  font-size: 16px;
-                  margin-bottom: 10px;
-                }
-                #downloadBtn:hover { background: #45a049; }
-              </style>
-            </head>
-            <body>
-              <button id="downloadBtn" onclick="downloadPDF()">⬇️ Télécharger PDF</button>
-              <iframe id="pdfContainer" src="${pdfDataUri}" type="application/pdf"></iframe>
-              <script>
-                function downloadPDF() {
-                  const link = document.createElement('a');
-                  link.href = "${pdfDataUri}";
-                  link.download = "${docForm.type === "QUOTE" ? "Devis" : "Facture"}_${docForm.number}.pdf";
-                  link.click();
-                }
-              </script>
-            </body>
-          </html>
-        `);
-        newWindow.document.close();
+      // Ouvrir le PDF dans la visionneuse native du navigateur
+      const pdfWindow = window.open(pdfDataUri, "_blank");
+      if (!pdfWindow) {
+        throw new Error("Impossible d'ouvrir la fenêtre PDF - vérifiez les bloqueurs de popup");
       }
 
       toast({
