@@ -402,14 +402,22 @@ export const useFinanceData = (currentUser = null) => {
         if (!res.ok) throw new Error("Erreur creation document");
 
         const data = await res.json();
+        console.log("📦 addDocument retournant:", data);
+        
         toast({
           title: "Succes",
           description: "Document cree",
           status: "success"
         });
+        
         // Recharger les données pour synchroniser avec le serveur
         await loadFinanceData();
-        return data;
+        
+        // Retourner le document avec l'ID pour utilisation immédiate
+        return {
+          ...data,
+          id: data.id || data?.document?.id || data?.data?.id
+        };
       } catch (error) {
         toast({
           title: "Erreur",
