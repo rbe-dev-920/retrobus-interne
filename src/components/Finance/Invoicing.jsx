@@ -546,54 +546,83 @@ const FinanceInvoicing = () => {
   // Helper pour ouvrir/visualiser un PDF dans une nouvelle fenêtre (aperçu)
   const downloadPDF = (dataUri, filename) => {
     try {
+      console.log(`📦 Conversion de ${filename}...`);
+      console.log(`📝 DataURI type: ${typeof dataUri}`);
+      console.log(`📝 DataURI longueur: ${dataUri?.length || 'undefined'}`);
+      console.log(`📝 DataURI début (100 chars): ${dataUri?.substring(0, 100) || 'N/A'}`);
+      
       // Vérifier que c'est une data URI
-      if (!dataUri || !dataUri.startsWith('data:')) {
-        console.error('❌ URL invalide:', dataUri?.substring(0, 50));
-        throw new Error('Format PDF invalide');
+      if (!dataUri) {
+        console.error('❌ dataUri est vide/null');
+        throw new Error('Pas de contenu PDF');
       }
       
-      console.log(`📦 Conversion de ${filename}...`);
+      if (typeof dataUri !== 'string') {
+        console.error('❌ dataUri n\'est pas une string:', typeof dataUri);
+        throw new Error('Format PDF invalide (pas une string)');
+      }
       
-      // Convertir data URI base64 en blob
+      if (!dataUri.startsWith('data:application/pdf')) {
+        console.error('❌ dataUri n\'a pas le bon prefix:', dataUri.substring(0, 50));
+        throw new Error('Format PDF invalide (pas data:application/pdf)');
+      }
+      
+      // Extraire le contenu base64
       const parts = dataUri.split(',');
       if (parts.length !== 2) {
-        throw new Error('Format data URI invalide');
+        console.error('❌ Format data URI invalide - pas de virgule correcte:', parts);
+        throw new Error(`Format data URI invalide - expected 2 parts, got ${parts.length}`);
       }
       
-      const byteCharacters = atob(parts[1]);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: 'application/pdf' });
+      const base64Data = parts[1];
+      console.log(`📝 Base64 data longueur: ${base64Data.length}`);
       
-      console.log(`✅ Blob créé: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
-      
-      // Créer une URL blob valide
-      const blobUrl = URL.createObjectURL(blob);
-      console.log(`🔗 Blob URL: ${blobUrl}`);
-      
-      // Ouvrir dans une nouvelle fenêtre avec l'URL blob
-      const pdfWindow = window.open(blobUrl, '_blank');
-      if (!pdfWindow) {
-        console.warn('⚠️ Impossible d\'ouvrir une nouvelle fenêtre');
-        toast({
-          title: "Attention",
-          description: "Vérifiez que les popups ne sont pas bloquées par votre navigateur",
-          status: "warning"
-        });
-        URL.revokeObjectURL(blobUrl);
-        return;
+      if (!base64Data || base64Data.length === 0) {
+        console.error('❌ Base64 data est vide');
+        throw new Error('Contenu PDF vide');
       }
       
-      console.log(`✅ PDF ouvert pour aperçu: ${filename}`);
-      
-      // Nettoyer l'URL blob après un délai
-      setTimeout(() => {
-        URL.revokeObjectURL(blobUrl);
-        console.log('🧹 Blob URL nettoyée');
-      }, 100);
+      try {
+        const byteCharacters = atob(base64Data);
+        console.log(`✅ Base64 décodé: ${byteCharacters.length} bytes`);
+        
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'application/pdf' });
+        
+        console.log(`✅ Blob créé: ${(blob.size / 1024 / 1024).toFixed(2)} MB`);
+        
+        // Créer une URL blob valide
+        const blobUrl = URL.createObjectURL(blob);
+        console.log(`🔗 Blob URL: ${blobUrl}`);
+        
+        // Ouvrir dans une nouvelle fenêtre avec l'URL blob
+        const pdfWindow = window.open(blobUrl, '_blank');
+        if (!pdfWindow) {
+          console.warn('⚠️ Impossible d\'ouvrir une nouvelle fenêtre');
+          toast({
+            title: "Attention",
+            description: "Vérifiez que les popups ne sont pas bloquées par votre navigateur",
+            status: "warning"
+          });
+          URL.revokeObjectURL(blobUrl);
+          return;
+        }
+        
+        console.log(`✅ PDF ouvert pour aperçu: ${filename}`);
+        
+        // Nettoyer l'URL blob après un délai
+        setTimeout(() => {
+          URL.revokeObjectURL(blobUrl);
+          console.log('🧹 Blob URL nettoyée');
+        }, 100);
+      } catch (decodeError) {
+        console.error('❌ Erreur décodage base64:', decodeError.message);
+        throw new Error(`Impossible de décoder le PDF: ${decodeError.message}`);
+      }
     } catch (error) {
       console.error('❌ Erreur ouverture PDF:', error.message);
       console.error('📋 Stack:', error);
