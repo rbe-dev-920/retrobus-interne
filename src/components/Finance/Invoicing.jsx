@@ -196,19 +196,29 @@ const FinanceInvoicing = () => {
         ...(editingDocument && { id: editingDocument.id }),
         ...(documentUrl && { documentUrl })
       };
-      await addDocument(dataToSave);
+      
+      // Attendre la création/modification du document
+      const result = await addDocument(dataToSave);
+      console.log("📋 Résultat addDocument:", result);
       
       // Générer automatiquement le PDF si htmlContent existe et qu'on n'a pas d'URL PDF déjà
       if (docForm.htmlContent && !documentUrl) {
         try {
+          // Attendre un peu pour que la base de données soit à jour
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           console.log("📄 Génération automatique du PDF après création du document...");
           
           // Récupérer l'ID du document créé (depuis la liste mise à jour)
-          const newDoc = documents[0]; // Le document créé devrait être le premier de la liste
-          if (newDoc) {
+          // Si on édite, on utilise l'ID existant, sinon on prend le premier de la liste
+          const docId = editingDocument?.id || documents[0]?.id;
+          
+          if (docId) {
             const token = localStorage.getItem("token");
+            console.log(`🔗 POST /api/finance/documents/${docId}/generate-pdf`);
+            
             const generateResponse = await fetch(
-              (import.meta.env.VITE_API_URL || "http://localhost:4000") + `/api/finance/documents/${newDoc.id}/generate-pdf`,
+              (import.meta.env.VITE_API_URL || "http://localhost:4000") + `/api/finance/documents/${docId}/generate-pdf`,
               {
                 method: "POST",
                 headers: {
@@ -219,14 +229,19 @@ const FinanceInvoicing = () => {
               }
             );
             
+            const responseData = await generateResponse.json();
+            console.log("Réponse serveur:", responseData);
+            
             if (generateResponse.ok) {
               console.log("✅ PDF généré automatiquement!");
             } else {
-              console.warn("⚠️ Génération automatique du PDF échouée");
+              console.error("❌ Génération automatique du PDF échouée:", responseData.error);
             }
+          } else {
+            console.warn("⚠️ Impossible de récupérer l'ID du document créé");
           }
         } catch (error) {
-          console.warn("⚠️ Erreur génération auto PDF:", error.message);
+          console.error("❌ Erreur génération auto PDF:", error.message, error.stack);
         }
       }
       
