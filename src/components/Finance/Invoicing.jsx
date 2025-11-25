@@ -485,6 +485,14 @@ const FinanceInvoicing = () => {
         DEVIS_LINES_TR: devisLinesTr
       };
 
+      console.log("📋 Données de remplacement:");
+      console.log("  - Numéro:", previewData.NUM_DEVIS);
+      console.log("  - Titre:", previewData.TITRE);
+      console.log("  - Montant:", previewData.MONTANT);
+      console.log("  - Logo Big size:", previewData.LOGO_BIG.length, "chars");
+      console.log("  - Logo Small size:", previewData.LOGO_SMALL.length, "chars");
+      console.log("  - Lignes devis:", devisLinesTr.length, "chars");
+
       // Générer l'HTML en remplaçant les placeholders
       let generatedHtml = selectedTemplate.htmlContent;
       Object.entries(previewData).forEach(([key, value]) => {
@@ -498,6 +506,16 @@ const FinanceInvoicing = () => {
       console.log("📄 Envoi au serveur pour génération PDF avec Puppeteer...");
       console.log(`📏 Taille HTML à envoyer: ${(generatedHtml.length / 1024).toFixed(2)} KB`);
       console.log("🔍 Premiers 500 chars du HTML:", generatedHtml.substring(0, 500));
+      console.log("🔍 Derniers 200 chars du HTML:", generatedHtml.substring(generatedHtml.length - 200));
+      
+      // Vérifier que le HTML contient du contenu text
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = generatedHtml;
+      const textContent = tempDiv.innerText || '';
+      console.log(`📝 Contenu texte du HTML: ${textContent.length} caractères`);
+      if (textContent.length < 10) {
+        console.warn("⚠️ ATTENTION: HTML généré presque vide!");
+      }
 
       // Appeler l'endpoint serveur pour générer le PDF
       const token = localStorage.getItem("token");
