@@ -199,6 +199,11 @@ const FinanceInvoicing = () => {
         ...(documentUrl && { documentUrl })
       };
       
+      console.log("💾 Données à sauvegarder:", {
+        ...dataToSave,
+        documentUrl: documentUrl ? "✅ PDF base64" : "❌ Pas de PDF"
+      });
+      
       // Attendre la création/modification du document
       const result = await addDocument(dataToSave);
       console.log("📋 Résultat addDocument:", result);

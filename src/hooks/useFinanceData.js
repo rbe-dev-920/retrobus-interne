@@ -377,6 +377,12 @@ export const useFinanceData = (currentUser = null) => {
 
         // ÉDITION ou CRÉATION ?
         let res;
+        const requestBody = finalDoc;
+        console.log("🌐 Envoi au backend avec payload:", {
+          ...requestBody,
+          documentUrl: requestBody.documentUrl ? "✅ PDF base64 (tronqué)" : "❌ Pas de PDF"
+        });
+        
         if (document.id) {
           // Mode édition: PUT
           res = await fetch(`${API_BASE}/api/finance/documents/${document.id}`, {
@@ -385,7 +391,7 @@ export const useFinanceData = (currentUser = null) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${localStorage.getItem("token")}`
             },
-            body: JSON.stringify(finalDoc)
+            body: JSON.stringify(requestBody)
           });
         } else {
           // Mode création: POST
@@ -395,7 +401,7 @@ export const useFinanceData = (currentUser = null) => {
               "Content-Type": "application/json",
               Authorization: `Bearer ${localStorage.getItem("token")}`
             },
-            body: JSON.stringify(finalDoc)
+            body: JSON.stringify(requestBody)
           });
         }
 
