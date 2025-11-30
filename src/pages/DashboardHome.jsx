@@ -83,7 +83,7 @@ export default function DashboardHome() {
     try {
       // Charger les actualités publiées depuis l'API RetroNews
       const response = await apiClient.get('/api/retro-news');
-      const data = Array.isArray(response) ? response : [];
+      const data = Array.isArray(response) ? response : (response?.news || []);
       
       // Filtrer pour ne garder que les publiés et les trier (vedettes en premier)
       const published = data
