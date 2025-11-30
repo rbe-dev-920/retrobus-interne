@@ -62,7 +62,7 @@ const ScheduledTab = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/scheduled-operations`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/finance/scheduled-operations`,
         {
           method: "POST",
           headers: {
@@ -100,7 +100,7 @@ const ScheduledTab = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/scheduled-operations/${id}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/finance/scheduled-operations/${id}`,
         {
           method: "DELETE",
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` }
