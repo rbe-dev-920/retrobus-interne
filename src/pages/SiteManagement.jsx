@@ -570,6 +570,37 @@ const PermissionsManagement = () => {
     }
   };
 
+  const handleMakeAdmin = async (isAdmin) => {
+    if (!selectedUser || !canManage) return;
+
+    try {
+      const response = await apiClient.post(`/api/admin/users/${selectedUser.id}/make-admin`, {
+        isAdmin,
+      });
+      
+      // Mettre à jour l'utilisateur sélectionné
+      setSelectedUser(response.user);
+      
+      toast({
+        title: 'Succès',
+        description: isAdmin ? 'Utilisateur promu admin' : 'Utilisateur rétrogradé',
+        status: 'success',
+        duration: 2000,
+      });
+      
+      // Recharger la liste des utilisateurs
+      await loadUsers();
+    } catch (error) {
+      console.error('Erreur modification admin:', error);
+      toast({
+        title: 'Erreur',
+        description: 'Impossible de modifier le statut admin',
+        status: 'error',
+        duration: 3000,
+      });
+    }
+  };
+
   const hasPermission = (resource, action) => {
     if (!userPermissions[resource]) return false;
     return userPermissions[resource].includes && 
@@ -698,6 +729,15 @@ const PermissionsManagement = () => {
                       {getRoleLabel(selectedUser.role)}
                     </Badge>
                   )}
+                  <HStack spacing={2} pt={2}>
+                    <Button
+                      size="sm"
+                      colorScheme={selectedUser.permissions?.includes('admin') ? 'red' : 'green'}
+                      onClick={() => handleMakeAdmin(!selectedUser.permissions?.includes('admin'))}
+                    >
+                      {selectedUser.permissions?.includes('admin') ? 'Retirer Admin' : 'Faire Admin'}
+                    </Button>
+                  </HStack>
                 </VStack>
               </CardHeader>
               <CardBody pt={0}>
