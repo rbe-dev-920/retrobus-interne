@@ -39,7 +39,7 @@ const ScheduledTab = () => {
     setLoading(true);
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/scheduled-operations`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:4000"}/api/finance/scheduled-operations`,
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       if (response.ok) {
@@ -464,4 +464,4 @@ const ScheduledTab = () => {
   );
 };
 
-export default ScheduledTab;
+export default Schedul
