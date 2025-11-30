@@ -186,12 +186,18 @@ const FinanceInvoicing = () => {
     }
 
     try {
+      // Calculer le nouveau montant total = montant existant + nouveau paiement
+      const currentAmountPaid = parseFloat(doc.amountPaid || 0);
+      const newPaymentAmount = parseFloat(paymentFormData.amountPaid);
+      const totalAmountPaid = currentAmountPaid + newPaymentAmount;
+
       console.log("💳 Enregistrement du paiement:", {
         docId: doc.id,
-        amountPaid: paymentFormData.amountPaid,
+        newPaymentAmount: newPaymentAmount,
+        currentAmountPaid: currentAmountPaid,
+        totalAmountPaid: totalAmountPaid,
         paymentMethod: paymentFormData.paymentMethod,
-        paymentDate: paymentFormData.paymentDate,
-        docActuelAmountPaid: doc.amountPaid
+        paymentDate: paymentFormData.paymentDate
       });
 
       // Appel direct à l'API pour ajouter le paiement
@@ -204,7 +210,7 @@ const FinanceInvoicing = () => {
         },
         body: JSON.stringify({
           ...doc,
-          amountPaid: parseFloat(paymentFormData.amountPaid),
+          amountPaid: totalAmountPaid,  // ✅ Envoyer le TOTAL, pas juste le nouveau montant
           paymentMethod: paymentFormData.paymentMethod,
           paymentDate: paymentFormData.paymentDate
         })
@@ -220,13 +226,12 @@ const FinanceInvoicing = () => {
         amountPaid: result.amountPaid,
         paymentHistory: result.paymentHistory,
         paymentMethod: result.paymentMethod,
-        paymentDate: result.paymentDate,
-        fullResponse: JSON.stringify(result, null, 2)
+        paymentDate: result.paymentDate
       });
 
       toast({
         title: "Succès",
-        description: `Paiement de ${paymentFormData.amountPaid} € enregistré (Backend: ${result.amountPaid}€)`,
+        description: `Paiement de ${newPaymentAmount} € enregistré (Total: ${result.amountPaid}€)`,
         status: "success"
       });
 
