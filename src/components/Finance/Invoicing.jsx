@@ -194,9 +194,13 @@ const FinanceInvoicing = () => {
       });
 
       // Appel direct à l'API pour ajouter le paiement
-      const response = await fetch(`/api/finance/documents/${doc.id}`, {
+      const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:4000";
+      const response = await fetch(`${API_BASE}/api/finance/documents/${doc.id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
         body: JSON.stringify({
           ...doc,
           amountPaid: parseFloat(paymentFormData.amountPaid),
