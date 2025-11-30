@@ -8,6 +8,7 @@ dotenv.config();
 const app = express();
 const upload = multer({ dest: 'uploads/' });
 const PORT = process.env.PORT || 4000;
+const pathRoot = process.cwd();
 
 // In-memory stores (reconstruction). À migrer vers Prisma ensuite.
 const state = {
@@ -89,6 +90,8 @@ app.use((req, res, next) => {
 
 // Middleware JSON
 app.use(express.json());
+// Static files (serve uploaded content)
+app.use('/uploads', express.static(pathRoot + '/uploads'));
 
 // Auth placeholder
 app.use((req, res, next) => {
