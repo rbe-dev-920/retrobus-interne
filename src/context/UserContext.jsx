@@ -204,8 +204,8 @@ export function UserProvider({ children }) {
   }, [token]);
 
   const username = user?.username || '';
-  const prenom = user?.prenom || '';
-  const nom = user?.nom || '';
+  const prenom = user?.prenom || user?.firstName || '';
+  const nom = user?.nom || user?.lastName || '';
   const roles = (user?.roles || []).map(r => normRole(r));
   const isAdmin = roles.includes('ADMIN') || roles.includes('PRESIDENT') || roles.includes('VICE_PRESIDENT') || roles.includes('TRESORIER') || roles.includes('SECRETAIRE_GENERAL');
   const isVolunteer = roles.includes('VOLUNTEER');
