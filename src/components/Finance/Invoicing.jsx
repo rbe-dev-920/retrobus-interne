@@ -26,7 +26,8 @@ const FinanceInvoicing = () => {
     addDocument,
     deleteDocument,
     updateDocumentStatus,
-    loading
+    loading,
+    loadFinanceData
   } = useFinanceData();
 
   const [isAdding, setIsAdding] = useState(false);
@@ -148,6 +149,86 @@ const FinanceInvoicing = () => {
       htmlContent: doc.htmlContent || ""
     });
     onOpen();
+  };
+
+  const handleAddPayment = async (doc) => {
+    // Validations
+    if (!docForm.amountPaid || parseFloat(docForm.amountPaid) <= 0) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez entrer un montant valide",
+        status: "error"
+      });
+      return;
+    }
+    if (!docForm.paymentMethod) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner un mode de paiement",
+        status: "error"
+      });
+      return;
+    }
+    if (!docForm.paymentDate) {
+      toast({
+        title: "Erreur",
+        description: "Veuillez sélectionner une date",
+        status: "error"
+      });
+      return;
+    }
+
+    try {
+      console.log("💳 Enregistrement du paiement:", {
+        docId: doc.id,
+        amountPaid: docForm.amountPaid,
+        paymentMethod: docForm.paymentMethod,
+        paymentDate: docForm.paymentDate
+      });
+
+      // Appel direct à l'API pour ajouter le paiement
+      const response = await fetch(`/api/finance/documents/${doc.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...doc,
+          amountPaid: parseFloat(docForm.amountPaid),
+          paymentMethod: docForm.paymentMethod,
+          paymentDate: docForm.paymentDate
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Erreur: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log("✅ Paiement enregistré:", result);
+
+      toast({
+        title: "Succès",
+        description: `Paiement de ${docForm.amountPaid} € enregistré`,
+        status: "success"
+      });
+
+      // Réinitialiser le formulaire de paiement
+      setDocForm(prev => ({
+        ...prev,
+        amountPaid: "",
+        paymentMethod: "",
+        paymentDate: ""
+      }));
+
+      // Recharger les données
+      await loadFinanceData();
+    } catch (error) {
+      console.error("❌ Erreur lors de l'enregistrement du paiement:", error);
+      toast({
+        title: "Erreur",
+        description: error.message || "Impossible d'enregistrer le paiement",
+        status: "error"
+      });
+    }
   };
 
   const handleAdd = async () => {
@@ -1394,7 +1475,7 @@ const FinanceInvoicing = () => {
                                             <Button
                                               size="sm"
                                               colorScheme="green"
-                                              onClick={() => handleOpenEdit(doc)}
+                                              onClick={() => handleAddPayment(doc)}
                                               mt={6}
                                             >
                                               Enregistrer
