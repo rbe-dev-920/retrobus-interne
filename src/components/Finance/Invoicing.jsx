@@ -619,8 +619,8 @@ const FinanceInvoicing = () => {
         
         // Trouver le template approprié (Devis ou Facture)
         const templateName = doc.type === 'QUOTE' 
-          ? 'Template Standard RétroBus' 
-          : 'Template Standard RétroBus - Factures';
+          ? 'DEVIS - RétroBus' 
+          : 'FACTURE - RétroBus';
         
         const template = templates.find(t => t.name === templateName);
         
