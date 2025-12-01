@@ -204,43 +204,6 @@ const Evenements = () => {
     try {
       setLoading(true);
       
-      const token = localStorage.getItem('token');
-      if (!token) {
-        toast({ 
-          status: "warning", 
-          title: "Session expirée",
-          description: "Veuillez vous reconnecter."
-        });
-        window.location.href = '/login';
-        return;
-      }
-
-      // Vérification de la validité du token
-      try {
-        const tokenParts = token.split('.');
-        if (tokenParts.length !== 3) {
-          throw new Error('Format de token invalide');
-        }
-        
-        const payload = JSON.parse(atob(tokenParts[1]));
-        const currentTime = Math.floor(Date.now() / 1000);
-        
-        if (payload.exp && payload.exp < currentTime) {
-          throw new Error('Token expiré');
-        }
-      } catch (tokenError) {
-        console.error('Token invalide:', tokenError);
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        toast({ 
-          status: "error", 
-          title: "Session invalide",
-          description: "Veuillez vous reconnecter."
-        });
-        window.location.href = '/login';
-        return;
-      }
-      
       const data = await eventsAPI.getAll();
       setEvents(Array.isArray(data) ? data : []);
     } catch (e) {
