@@ -4,7 +4,7 @@ import {
   Table, Thead, Tbody, Tr, Th, Td, Select, useToast, Spinner, Alert, AlertIcon,
   SimpleGrid, Stat, StatLabel, StatNumber
 } from '@chakra-ui/react';
-import { vehicleAdminAPI } from '../../api/vehicleAdmin';
+import { vehicleAdminAPI } from '../api/vehicleAdmin';
 
 export const EchancierPage = () => {
   const [echancier, setEchancier] = useState([]);
