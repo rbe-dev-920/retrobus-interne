@@ -159,7 +159,9 @@ export default function DashboardHome() {
       
       // Adapter selon la structure de la réponse
       let vehicles = [];
-      if (response?.data) {
+      if (response?.vehicles) {
+        vehicles = Array.isArray(response.vehicles) ? response.vehicles : [response.vehicles];
+      } else if (response?.data) {
         vehicles = Array.isArray(response.data) ? response.data : [response.data];
       } else if (Array.isArray(response)) {
         vehicles = response;
@@ -210,7 +212,9 @@ export default function DashboardHome() {
       
       // Adapter selon la structure de la réponse
       let events = [];
-      if (response?.data) {
+      if (response?.events) {
+        events = Array.isArray(response.events) ? response.events : [response.events];
+      } else if (response?.data) {
         events = Array.isArray(response.data) ? response.data : [response.data];
       } else if (Array.isArray(response)) {
         events = response;
