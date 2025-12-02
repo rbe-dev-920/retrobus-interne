@@ -1,3 +1,4 @@
+// Fix: vehicleId selection persistence in event form
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box, Heading, SimpleGrid, Card, CardHeader, CardBody,
