@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
   Box, HStack, VStack, Badge, Tooltip, Text, Icon, useDisclosure, 
-  Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Button
+  Modal, ModalOverlay, ModalContent, ModalHeader, ModalBody, ModalCloseButton, Button,
+  SimpleGrid, Card, CardBody, Divider
 } from '@chakra-ui/react';
 import { CheckCircleIcon, WarningIcon, TimeIcon } from '@chakra-ui/icons';
 import { vehicleAdminAPI } from '../../api/vehicleAdmin';
@@ -40,10 +41,10 @@ const VehicleAdminStatus = ({ parc }) => {
   };
 
   const statusDetails = [
-    { key: 'carteGrise', label: 'CG', icon: '🚗' },
-    { key: 'assurance', label: 'Assurance', icon: '🔒' },
-    { key: 'controleTechnique', label: 'CT', icon: '🔧' },
-    { key: 'certificatCession', label: 'Certificat', icon: '📄' }
+    { key: 'carteGrise', label: 'Carte Grise', icon: '🚗', short: 'CG' },
+    { key: 'assurance', label: 'Assurance', icon: '🔒', short: 'ASS' },
+    { key: 'controleTechnique', label: 'Contrôle Technique', icon: '🔧', short: 'CT' },
+    { key: 'certificatCession', label: 'Certificat Cession', icon: '📄', short: 'CERT' }
   ];
 
   const getStatusColor = (statusKey) => {
@@ -56,35 +57,91 @@ const VehicleAdminStatus = ({ parc }) => {
     return s === 'ok' ? '✅' : s === 'warning' ? '⚠️' : s === 'expired' ? '❌' : '⭕';
   };
 
+  const getStatusText = (statusKey) => {
+    const s = status[statusKey];
+    return s === 'ok' ? 'À jour' : s === 'warning' ? 'Attn.' : s === 'expired' ? 'Expiré' : 'Manquant';
+  };
+
   if (loading) return null;
 
   return (
     <>
-      <HStack spacing={2} onClick={onOpen} cursor="pointer">
+      {/* Version compacte pour la liste */}
+      <HStack 
+        spacing={2} 
+        onClick={onOpen} 
+        cursor="pointer"
+        _hover={{ opacity: 0.8, transition: 'opacity 0.2s' }}
+        w="full"
+      >
         {statusDetails.map(detail => (
           <Tooltip 
             key={detail.key}
-            label={detail.label}
+            label={`${detail.label}: ${getStatusText(detail.key)}`}
             placement="top"
           >
             <Badge 
               colorScheme={getStatusColor(detail.key)}
-              fontSize="md"
-              p={2}
+              fontSize="xs"
+              px={2}
+              py={1}
+              borderRadius="md"
+              whiteSpace="nowrap"
             >
-              {detail.icon} {getStatusIcon(detail.key)}
+              {detail.icon} {detail.short}
             </Badge>
           </Tooltip>
         ))}
-        <Text fontSize="xs" color="gray.500" ml={2}>Cliquer pour gérer</Text>
       </HStack>
 
-      <Modal isOpen={isOpen} onClose={onClose} size="4xl">
+      {/* Modal avec vue détaillée améliorée */}
+      <Modal isOpen={isOpen} onClose={onClose} size="5xl">
         <ModalOverlay />
-        <ModalContent>
-          <ModalHeader>Administration Véhicule {parc}</ModalHeader>
+        <ModalContent maxW="900px">
+          <ModalHeader>
+            <VStack align="start" spacing={0}>
+              <Text>Administration Véhicule</Text>
+              <Text fontSize="sm" color="gray.600" fontWeight="normal">Gestion des documents et statuts</Text>
+            </VStack>
+          </ModalHeader>
           <ModalCloseButton />
           <ModalBody pb={8}>
+            {/* Vue de synthèse des statuts */}
+            <Card mb={6} bg="gray.50">
+              <CardBody>
+                <VStack align="start" spacing={4}>
+                  <Text fontWeight="bold" fontSize="lg">📋 Synthèse Administrative</Text>
+                  <SimpleGrid columns={{ base: 2, md: 4 }} spacing={4} w="full">
+                    {statusDetails.map(detail => (
+                      <VStack 
+                        key={detail.key}
+                        p={4}
+                        bg="white"
+                        borderRadius="md"
+                        border="2px solid"
+                        borderColor={getStatusColor(detail.key) + '.300'}
+                        spacing={2}
+                      >
+                        <Text fontSize="2xl">{detail.icon}</Text>
+                        <Text fontWeight="bold" textAlign="center" fontSize="sm">{detail.label}</Text>
+                        <Badge 
+                          colorScheme={getStatusColor(detail.key)}
+                          fontSize="sm"
+                          px={3}
+                          py={1}
+                        >
+                          {getStatusIcon(detail.key)} {getStatusText(detail.key)}
+                        </Badge>
+                      </VStack>
+                    ))}
+                  </SimpleGrid>
+                </VStack>
+              </CardBody>
+            </Card>
+
+            <Divider my={4} />
+
+            {/* Formulaires de gestion détaillés */}
             <VehicleAdministrationPanel parc={parc} />
           </ModalBody>
         </ModalContent>
