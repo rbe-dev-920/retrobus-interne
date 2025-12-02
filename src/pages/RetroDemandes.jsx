@@ -82,9 +82,9 @@ const RetroDemandes = () => {
   // Vérifier si l'utilisateur peut accéder à l'onglet Récapitulatif
   const canViewRecap = useCallback(() => {
     if (!user) return false;
-    const roles = Array.isArray(user.roles) ? user.roles : [];
+    const roles = Array.isArray(user.roles) ? user.roles : (user.role ? [user.role] : []);
     const hasAdminRole = roles.some(r => 
-      r === "ADMIN" || r === "PRESIDENT" || r === "VICE-PRESIDENT" || r === "TREASURER"
+      r === "ADMIN" || r === "PRESIDENT" || r === "VICE_PRESIDENT" || r === "TRESORIER" || r === "SECRETAIRE_GENERAL"
     );
     return hasAdminRole;
   }, [user]);
