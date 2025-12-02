@@ -44,7 +44,7 @@ const VehicleAdminStatus = ({ parc }) => {
     { key: 'carteGrise', label: 'Carte Grise', icon: '🚗', short: 'CG' },
     { key: 'assurance', label: 'Assurance', icon: '🔒', short: 'ASS' },
     { key: 'controleTechnique', label: 'Contrôle Technique', icon: '🔧', short: 'CT' },
-    { key: 'certificatCession', label: 'Certificat Cession', icon: '📄', short: 'CERT' }
+    { key: 'certificatCession', label: 'Certificat Cession', icon: '📄', short: 'CERFA' }
   ];
 
   const getStatusColor = (statusKey) => {
