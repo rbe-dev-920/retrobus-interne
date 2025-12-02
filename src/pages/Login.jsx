@@ -27,7 +27,9 @@ export default function Login() {
     setErr('');
     try {
       const id = username.trim();
-      const looksLikeMatricule = /^\d{4}-\d{3}$/i.test(id) || id.includes('@');
+      // Déterminer si c'est un matricule ou un username admin
+      // Matricule: contient un @ (email), ou est au format XXXX-XXX, ou contient un point (w.belaidi)
+      const looksLikeMatricule = /^\d{4}-\d{3}$/i.test(id) || id.includes('@') || id.includes('.');
       const data = looksLikeMatricule
         ? await memberLogin(id, password)
         : await login(id.toLowerCase(), password);
