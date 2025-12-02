@@ -68,6 +68,16 @@ export function Navigation() {
     );
   }
 
+  // Si c'est un partenaire, montrer UNIQUEMENT RétroDemandes et RétroSupport
+  if (userRole === 'PARTENAIRE') {
+    return (
+      <Flex bg="white" gap={{ base: 4, md: 8 }} justify="center" align="center" py={3}>
+        <TopNavLink to="/dashboard/retro-demandes">📋 RétroDemandes</TopNavLink>
+        {canAccessRétroSupport && <TopNavLink to="/dashboard/support">🆘 RétroSupport</TopNavLink>}
+      </Flex>
+    );
+  }
+
   // Tous les autres rôles ont accès au menu complet (mais basé sur les permissions)
   return (
     <Flex bg="white" gap={{ base: 4, md: 8 }} justify="center" align="center" py={3}>

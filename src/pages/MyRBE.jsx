@@ -135,9 +135,9 @@ export default function MyRBE() {
       return true;
     }
 
-    // Les prestataires ne voient que RétroSupport (RétroPlanning est masqué)
-    if (userRole === 'PRESTATAIRE') {
-      return card.title === 'RétroSupport';
+    // Les prestataires et partenaires ne voient que RétroSupport et RétroDemandes
+    if (userRole === 'PRESTATAIRE' || userRole === 'PARTENAIRE') {
+      return card.title === 'RétroSupport' || card.title === 'RétroDemandes';
     }
 
     // Vérifier les rôles requis
