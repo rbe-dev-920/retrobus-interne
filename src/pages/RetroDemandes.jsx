@@ -1305,6 +1305,7 @@ const RetroDemandes = () => {
                         ❌ Rejetée
                       </option>
                     </Select>
+                    )}
                   </HStack>
                 </Box>
 
@@ -1654,24 +1655,26 @@ const RetroDemandes = () => {
                   <Heading size="sm" mb={4}>
                     📄 Documents associés
                   </Heading>
-                  <HStack spacing={3} wrap="wrap">
-                    <Button
-                      size="sm"
-                      colorScheme="blue"
-                      variant="outline"
-                      onClick={onLinkDevisOpen}
-                    >
-                      Joindre un devis
-                    </Button>
-                    <Button
-                      size="sm"
-                      colorScheme="green"
-                      variant="outline"
-                      onClick={onLinkFactureOpen}
-                    >
-                      Joindre une facture
-                    </Button>
-                  </HStack>
+                  {isUserAdmin() && (
+                    <HStack spacing={3} wrap="wrap">
+                      <Button
+                        size="sm"
+                        colorScheme="blue"
+                        variant="outline"
+                        onClick={onLinkDevisOpen}
+                      >
+                        Joindre un devis
+                      </Button>
+                      <Button
+                        size="sm"
+                        colorScheme="green"
+                        variant="outline"
+                        onClick={onLinkFactureOpen}
+                      >
+                        Joindre une facture
+                      </Button>
+                    </HStack>
+                  )}
                   {(selectedRequest.devisNumber || selectedRequest.factureNumber) && (
                     <VStack align="start" spacing={2} mt={3}>
                       {selectedRequest.devisNumber && (
