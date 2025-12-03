@@ -295,7 +295,7 @@ const RetroDemandes = () => {
 
     try {
       setLoading(true);
-      await apiClient.post(
+      const response = await apiClient.post(
         `/api/retro-requests/${selectedRequest.id}/status`,
         {
           status: newStatus,
@@ -307,12 +307,23 @@ const RetroDemandes = () => {
         description: "Statut modifié",
         status: "success",
       });
-      // Mettre à jour selectedRequest avec le nouveau statut
-      setSelectedRequest({
-        ...selectedRequest,
-        status: newStatus,
-      });
+      // Mettre à jour selectedRequest avec les données du serveur
+      if (response.request) {
+        setSelectedRequest(response.request);
+      } else {
+        setSelectedRequest({
+          ...selectedRequest,
+          status: newStatus,
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      // Recharger les demandes pour mettre à jour la liste
       await loadMyRequests();
+      
+      // Si la demande modifiée est dans la liste, recharger sa version
+      if (canViewRecap()) {
+        await loadAllRequests();
+      }
     } catch (error) {
       console.error("Erreur changement statut:", error);
       toast({
@@ -328,6 +339,75 @@ const RetroDemandes = () => {
   const handleViewDetails = (request) => {
     setSelectedRequest(request);
     onPreviewOpen();
+  };
+
+  const [devisInput, setDevisInput] = useState("");
+  const [factureInput, setFactureInput] = useState("");
+
+  const handleLinkDevis = async () => {
+    if (!devisInput.trim() || !selectedRequest) return;
+
+    try {
+      setLoading(true);
+      const response = await apiClient.put(
+        `/api/retro-requests/${selectedRequest.id}`,
+        {
+          ...selectedRequest,
+          devisNumber: devisInput.trim(),
+        }
+      );
+      toast({
+        title: "Succès",
+        description: "Devis lié",
+        status: "success",
+      });
+      setSelectedRequest(response.request);
+      setDevisInput("");
+      onLinkDevisClose();
+      await loadMyRequests();
+    } catch (error) {
+      console.error("Erreur liaison devis:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de lier le devis",
+        status: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleLinkFacture = async () => {
+    if (!factureInput.trim() || !selectedRequest) return;
+
+    try {
+      setLoading(true);
+      const response = await apiClient.put(
+        `/api/retro-requests/${selectedRequest.id}`,
+        {
+          ...selectedRequest,
+          factureNumber: factureInput.trim(),
+        }
+      );
+      toast({
+        title: "Succès",
+        description: "Facture liée",
+        status: "success",
+      });
+      setSelectedRequest(response.request);
+      setFactureInput("");
+      onLinkFactureClose();
+      await loadMyRequests();
+    } catch (error) {
+      console.error("Erreur liaison facture:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de lier la facture",
+        status: "error",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFileUpload = async (event, requestId) => {
@@ -1562,9 +1642,126 @@ const RetroDemandes = () => {
                     )}
                   </VStack>
                 </Box>
-              </VStack>
+
+                <Divider />
+
+                <Box width="100%">
+                  <Heading size="sm" mb={4}>
+                    📄 Documents associés
+                  </Heading>
+                  <HStack spacing={3} wrap="wrap">
+                    <Button
+                      size="sm"
+                      colorScheme="blue"
+                      variant="outline"
+                      onClick={onLinkDevisOpen}
+                    >
+                      Joindre un devis
+                    </Button>
+                    <Button
+                      size="sm"
+                      colorScheme="green"
+                      variant="outline"
+                      onClick={onLinkFactureOpen}
+                    >
+                      Joindre une facture
+                    </Button>
+                  </HStack>
+                  {(selectedRequest.devisNumber || selectedRequest.factureNumber) && (
+                    <VStack align="start" spacing={2} mt={3}>
+                      {selectedRequest.devisNumber && (
+                        <HStack>
+                          <Badge colorScheme="blue">Devis</Badge>
+                          <Text fontSize="sm">{selectedRequest.devisNumber}</Text>
+                        </HStack>
+                      )}
+                      {selectedRequest.factureNumber && (
+                        <HStack>
+                          <Badge colorScheme="green">Facture</Badge>
+                          <Text fontSize="sm">{selectedRequest.factureNumber}</Text>
+                        </HStack>
+                      )}
+                    </VStack>
+                  )}
+                </Box>
             )}
           </ModalBody>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal for linking devis */}
+      <Modal isOpen={isLinkDevisOpen} onClose={onLinkDevisClose} size="2xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Joindre un devis</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4} align="stretch">
+              <Text color="gray.600" fontSize="sm">
+                Entrez le numéro du devis à associer à cette demande.
+              </Text>
+              <FormControl>
+                <FormLabel>Numéro de devis</FormLabel>
+                <Input
+                  placeholder="ex: DEVIS-2024-001"
+                  value={devisInput}
+                  onChange={(e) => setDevisInput(e.target.value)}
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <HStack spacing={3}>
+              <Button variant="outline" onClick={onLinkDevisClose}>
+                Annuler
+              </Button>
+              <Button
+                colorScheme="blue"
+                onClick={handleLinkDevis}
+                isLoading={loading}
+              >
+                Associer
+              </Button>
+            </HStack>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
+      {/* Modal for linking facture */}
+      <Modal isOpen={isLinkFactureOpen} onClose={onLinkFactureClose} size="2xl">
+        <ModalOverlay />
+        <ModalContent>
+          <ModalHeader>Joindre une facture</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <VStack spacing={4} align="stretch">
+              <Text color="gray.600" fontSize="sm">
+                Entrez le numéro de la facture à associer à cette demande.
+              </Text>
+              <FormControl>
+                <FormLabel>Numéro de facture</FormLabel>
+                <Input
+                  placeholder="ex: FACTURE-2024-001"
+                  value={factureInput}
+                  onChange={(e) => setFactureInput(e.target.value)}
+                />
+              </FormControl>
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <HStack spacing={3}>
+              <Button variant="outline" onClick={onLinkFactureClose}>
+                Annuler
+              </Button>
+              <Button
+                colorScheme="green"
+                onClick={handleLinkFacture}
+                isLoading={loading}
+              >
+                Associer
+              </Button>
+            </HStack>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </>
