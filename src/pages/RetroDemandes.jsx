@@ -96,8 +96,12 @@ const RetroDemandes = () => {
 
   const [uploadedFiles, setUploadedFiles] = useState([]);
 
-  // Vérifier si l'utilisateur peut accéder à l'onglet Récapitulatif
-  const canViewRecap = useCallback(() => {
+  // Vérifier si l'utilisateur est admin
+  const isUserAdmin = useCallback(() => {
+    if (!user) return false;
+    const roles = Array.isArray(user.roles) ? user.roles : (user.role ? [user.role] : []);
+    return roles.includes('ADMIN');
+  }, [user]);
     if (!user) return false;
     const roles = Array.isArray(user.roles)
       ? user.roles
@@ -1270,32 +1274,33 @@ const RetroDemandes = () => {
                     {getStatusBadge(
                       selectedRequest.status
                     )}
-                    <Select
-                      size="sm"
-                      width="200px"
-                      value={selectedRequest.status}
-                      onChange={(e) =>
-                        handleStatusChange(
-                          e.target.value
-                        )
-                      }
-                      isDisabled={loading}
-                    >
-                      <option value="PENDING">
-                        ⏳ En attente
-                      </option>
-                      <option value="ASSIGNED">
-                        👤 Assignée
-                      </option>
-                      <option value="IN_PROGRESS">
-                        🔄 En cours
-                      </option>
-                      <option value="COMPLETED">
-                        ✅ Complétée
-                      </option>
-                      <option value="CLOSED">
-                        🔒 Fermée
-                      </option>
+                    {isUserAdmin() && (
+                      <Select
+                        size="sm"
+                        width="200px"
+                        value={selectedRequest.status}
+                        onChange={(e) =>
+                          handleStatusChange(
+                            e.target.value
+                          )
+                        }
+                        isDisabled={loading}
+                      >
+                        <option value="PENDING">
+                          ⏳ En attente
+                        </option>
+                        <option value="ASSIGNED">
+                          👤 Assignée
+                        </option>
+                        <option value="IN_PROGRESS">
+                          🔄 En cours
+                        </option>
+                        <option value="COMPLETED">
+                          ✅ Complétée
+                        </option>
+                        <option value="CLOSED">
+                          🔒 Fermée
+                        </option>
                       <option value="REJECTED">
                         ❌ Rejetée
                       </option>
