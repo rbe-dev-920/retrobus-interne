@@ -1304,10 +1304,10 @@ const RetroDemandes = () => {
                         <option value="CLOSED">
                           🔒 Fermée
                         </option>
-                      <option value="REJECTED">
-                        ❌ Rejetée
-                      </option>
-                    </Select>
+                        <option value="REJECTED">
+                          ❌ Rejetée
+                        </option>
+                      </Select>
                     )}
                   </HStack>
                 </Box>
@@ -1695,6 +1695,7 @@ const RetroDemandes = () => {
                     </VStack>
                   )}
                 </Box>
+              </VStack>
             )}
           </ModalBody>
         </ModalContent>
