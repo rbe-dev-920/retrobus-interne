@@ -3339,7 +3339,7 @@ const AdminFinance = () => {
                       <HStack justify="space-between">
                         <Text fontSize="sm" color="green.700" fontWeight="bold">Montant TTC:</Text>
                         <Text fontSize="lg" color="green.700" fontWeight="bold">
-                          {parseFloat(docForm.amount || 0).toFixed(2)} €
+                          {(parseFloat(docForm.amount) || 0).toFixed(2)} €
                         </Text>
                       </HStack>
                     </Box>
