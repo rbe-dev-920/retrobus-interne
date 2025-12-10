@@ -1146,8 +1146,8 @@ const AdminFinance = () => {
             <tr>
               <td class="num">${line.quantity}</td>
               <td class="desc">${line.description}</td>
-              <td class="num">${line.unitPrice.toFixed(2)} €</td>
-              <td class="num">${line.totalPrice.toFixed(2)} €</td>
+              <td class="num">${(parseFloat(line.unitPrice) || 0).toFixed(2)} €</td>
+              <td class="num">${(parseFloat(line.totalPrice) || 0).toFixed(2)} €</td>
             </tr>
           `).join('');
         }
@@ -3497,7 +3497,7 @@ const AdminFinance = () => {
                   onTotalChange={(total) => {
                     setDocForm(prev => ({
                       ...prev,
-                      amount: total.toFixed(2)
+                      amount: (parseFloat(total) || 0).toFixed(2)
                     }));
                   }}
                 />
