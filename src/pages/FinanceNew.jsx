@@ -33,14 +33,14 @@ import { useUser } from "../context/UserContext";
 const FinanceNew = () => {
   // Charger les données Finance une fois au mount
   const { loadFinanceData } = useFinanceData();
-  const { user } = useUser(); // Récupérer l'utilisateur pour vérifier les droits
+  const { user, roles } = useUser(); // Récupérer l'utilisateur et ses rôles
 
   useEffect(() => {
     loadFinanceData();
   }, [loadFinanceData]);
 
   // Vérifier si l'utilisateur a accès à la gestion des notes
-  const hasExpenseReportsManagementAccess = user?.roles?.some(role =>
+  const hasExpenseReportsManagementAccess = roles?.some(role =>
     ["PRESIDENT", "VICE_PRESIDENT", "TRESORIER"].includes(role)
   );
 
