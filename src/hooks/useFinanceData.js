@@ -915,14 +915,21 @@ export const useFinanceData = (currentUser = null) => {
   );
 
   const runSimulation = useCallback(
-    async (scenarioId) => {
+    async (scenarioId, options = {}) => {
       try {
         setLoading(true);
+        const { startingBalance = 0, projectionMonths = 12 } = options;
+        
         const res = await fetch(`${API_BASE}/api/finance/simulations/${scenarioId}/run`, {
           method: "POST",
           headers: {
+            "Content-Type": "application/json",
             Authorization: `Bearer ${localStorage.getItem("token")}`
-          }
+          },
+          body: JSON.stringify({
+            startingBalance: parseFloat(startingBalance),
+            projectionMonths: parseInt(projectionMonths)
+          })
         });
 
         if (!res.ok) throw new Error("Erreur simulation");

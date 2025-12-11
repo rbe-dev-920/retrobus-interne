@@ -210,7 +210,10 @@ const Simulations = () => {
 
   const handleRunSimulation = async (scenarioId) => {
     try {
-      const results = await runSimulation(scenarioId);
+      const results = await runSimulation(scenarioId, {
+        startingBalance: 0,
+        projectionMonths: 12
+      });
       setSimulationResults(results);
       onResultsOpen();
     } catch (error) {
@@ -739,7 +742,7 @@ const Simulations = () => {
                   onEditClose();
                 }}
                 isLoading={loading}
-                isDisabled={!editingScenario.itemsCount}
+                isDisabled={!editingScenario || !((editingScenario.incomeItems?.length || 0) + (editingScenario.expenseItems?.length || 0))}
               >
                 Exécuter la simulation
               </Button>
