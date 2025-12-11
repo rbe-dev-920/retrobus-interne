@@ -1,4 +1,4 @@
-import React, { useEffect, useContext } from "react";
+import React, { useEffect } from "react";
 import {
   FiDollarSign,
   FiTrendingUp,
@@ -23,7 +23,7 @@ import ExpenseReports from "../components/Finance/ExpenseReports";
 import ExpenseReportsManagement from "../components/Finance/ExpenseReportsManagement";
 import Simulations from "../components/Finance/Simulations";
 import { useFinanceData } from "../hooks/useFinanceData";
-import { UserContext } from "../context/UserContext";
+import { useUser } from "../context/UserContext";
 
 /**
  * FinanceNew - Nouvelle page Finance avec sidebar navigation
@@ -33,7 +33,7 @@ import { UserContext } from "../context/UserContext";
 const FinanceNew = () => {
   // Charger les données Finance une fois au mount
   const { loadFinanceData } = useFinanceData();
-  const { user } = useContext(UserContext); // Récupérer l'utilisateur pour vérifier les droits
+  const { user } = useUser(); // Récupérer l'utilisateur pour vérifier les droits
 
   useEffect(() => {
     loadFinanceData();
