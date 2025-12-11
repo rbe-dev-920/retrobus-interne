@@ -590,7 +590,7 @@ const Simulations = () => {
                                 size="xs"
                                 colorScheme="red"
                                 variant="ghost"
-                                onClick={() => removeIncomeItem(item.id)}
+                                onClick={() => removeIncomeItem(item.id, editingScenario.id)}
                               >
                                 ✕
                               </Button>
@@ -699,7 +699,7 @@ const Simulations = () => {
                                 size="xs"
                                 colorScheme="red"
                                 variant="ghost"
-                                onClick={() => removeExpenseItem(item.id)}
+                                onClick={() => removeExpenseItem(item.id, editingScenario.id)}
                               >
                                 ✕
                               </Button>

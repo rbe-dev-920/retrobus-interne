@@ -982,6 +982,197 @@ export const useFinanceData = (currentUser = null) => {
     [simulationData, toast]
   );
 
+  // Charger les détails d'un scénario (avec ses items)
+  const loadScenarioDetails = useCallback(
+    async (scenarioId) => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/api/finance/simulations/${scenarioId}`, {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          }
+        });
+
+        if (!res.ok) throw new Error("Impossible de charger les détails du scénario");
+
+        const scenario = await res.json();
+        return scenario;
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les détails du scénario",
+          status: "error"
+        });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  // Ajouter une recette à un scénario
+  const addIncomeItem = useCallback(
+    async (scenarioId, item) => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/api/finance/simulations/${scenarioId}/income`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify(item)
+        });
+
+        if (!res.ok) throw new Error("Erreur ajout recette");
+
+        const newItem = await res.json();
+        return newItem;
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: error.message,
+          status: "error"
+        });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  // Ajouter une dépense à un scénario
+  const addExpenseItem = useCallback(
+    async (scenarioId, item) => {
+      try {
+        setLoading(true);
+        const res = await fetch(`${API_BASE}/api/finance/simulations/${scenarioId}/expense`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("token")}`
+          },
+          body: JSON.stringify(item)
+        });
+
+        if (!res.ok) throw new Error("Erreur ajout dépense");
+
+        const newItem = await res.json();
+        return newItem;
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: error.message,
+          status: "error"
+        });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  // Supprimer une recette (par ID de recette)
+  const removeIncomeItem = useCallback(
+    async (itemId, scenarioId) => {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `${API_BASE}/api/finance/simulations/${scenarioId}/income/${itemId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          }
+        );
+
+        if (!res.ok) throw new Error("Erreur suppression recette");
+
+        toast({
+          title: "Succès",
+          description: "Recette supprimée",
+          status: "success"
+        });
+        return true;
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: error.message,
+          status: "error"
+        });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  // Supprimer une dépense (par ID de dépense)
+  const removeExpenseItem = useCallback(
+    async (itemId, scenarioId) => {
+      try {
+        setLoading(true);
+        const res = await fetch(
+          `${API_BASE}/api/finance/simulations/${scenarioId}/expense/${itemId}`,
+          {
+            method: "DELETE",
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          }
+        );
+
+        if (!res.ok) throw new Error("Erreur suppression dépense");
+
+        toast({
+          title: "Succès",
+          description: "Dépense supprimée",
+          status: "success"
+        });
+        return true;
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: error.message,
+          status: "error"
+        });
+        return null;
+      } finally {
+        setLoading(false);
+      }
+    },
+    [toast]
+  );
+
+  // Alias pour deleteSimulationScenario
+  const deleteScenario = deleteSimulationScenario;
+
+  // Télécharger le scénario en PDF
+  const downloadScenarioPdf = useCallback(
+    async (scenarioId, scenarioName) => {
+      try {
+        toast({
+          title: "Info",
+          description: "Export PDF en cours de développement",
+          status: "info"
+        });
+        // Future implementation
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: error.message,
+          status: "error"
+        });
+      }
+    },
+    [toast]
+  );
+
   // ===== RAPPORTS =====
   const loadReports = useCallback(
     async (year) => {
@@ -1098,6 +1289,13 @@ export const useFinanceData = (currentUser = null) => {
     createSimulationScenario,
     runSimulation,
     deleteSimulationScenario,
+    loadScenarioDetails,
+    addIncomeItem,
+    addExpenseItem,
+    removeIncomeItem,
+    removeExpenseItem,
+    deleteScenario,
+    downloadScenarioPdf,
     // Rapports
     reportYear,
     setReportYear,
