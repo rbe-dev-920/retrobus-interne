@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Box, VStack, HStack, Card, CardHeader, CardBody,
   Heading, Text, Button, Badge, useToast, SimpleGrid, Stat, StatLabel, StatNumber,
@@ -20,7 +20,8 @@ const FinanceScheduledOps = () => {
     addScheduledOperation,
     deleteScheduledOperation,
     toggleScheduledOperation,
-    loading
+    loading,
+    loadFinanceData
   } = useFinanceData();
 
   const [isAdding, setIsAdding] = useState(false);
@@ -35,7 +36,12 @@ const FinanceScheduledOps = () => {
   const toast = useToast();
   const { isOpen, onOpen, onClose } = useDisclosure();
 
-  const handleAdd = async () => {
+  // Charger les données au montage du composant
+  useEffect(() => {
+    loadFinanceData();
+  }, [loadFinanceData]);
+
+  const handleAdd = useCallback(async () => {
     if (!formData.amount || !formData.description) {
       toast({
         title: "Erreur",
@@ -64,13 +70,15 @@ const FinanceScheduledOps = () => {
           duration: 2000,
           isClosable: true
         });
+        // Recharger les données après création
+        await loadFinanceData();
       }
     } finally {
       setIsAdding(false);
     }
-  };
+  }, [formData, addScheduledOperation, onClose, toast, loadFinanceData]);
 
-  const handleDelete = async (id) => {
+  const handleDelete = useCallback(async (id) => {
     if (confirm("Êtes-vous sûr de vouloir supprimer cette opération ?")) {
       try {
         await deleteScheduledOperation(id);
@@ -80,6 +88,8 @@ const FinanceScheduledOps = () => {
           duration: 2000,
           isClosable: true
         });
+        // Recharger les données après suppression
+        await loadFinanceData();
       } catch (error) {
         toast({
           title: "Erreur",
@@ -88,7 +98,7 @@ const FinanceScheduledOps = () => {
         });
       }
     }
-  };
+  }, [deleteScheduledOperation, toast, loadFinanceData]);
 
   const handleToggle = async (id, currentStatus) => {
     try {

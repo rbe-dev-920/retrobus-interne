@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box, VStack, HStack, Card, CardHeader, CardBody,
   Heading, Text, Button, Badge, useToast, Icon, Grid, Stat,
@@ -30,13 +30,19 @@ const Simulations = () => {
     runSimulation,
     deleteScenario,
     downloadScenarioPdf,
-    loading
+    loading,
+    loadFinanceData
   } = useFinanceData();
 
   const [isCreating, setIsCreating] = useState(false);
   const [editingScenario, setEditingScenario] = useState(null);
   const [simulationResults, setSimulationResults] = useState(null);
   const toast = useToast();
+
+  // Charger les scénarios au montage
+  useEffect(() => {
+    loadFinanceData();
+  }, [loadFinanceData]);
 
   const {
     isOpen: isCreateOpen,

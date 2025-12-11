@@ -206,6 +206,26 @@ export const useFinanceData = (currentUser = null) => {
       } catch (err) {
         console.warn("⚠️ Erreur chargement solde:", err.message);
       }
+
+      // Charger les simulations (endpoint: /simulations)
+      try {
+        const simRes = await fetch(`${API_BASE}/api/finance/simulations`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (simRes.ok) {
+          const data = await simRes.json();
+          const scenarios = Array.isArray(data) ? data : (data.scenarios || []);
+          setSimulationData({
+            scenarios: scenarios,
+            activeScenario: null,
+            projectionMonths: 12
+          });
+        }
+      } catch (err) {
+        console.warn("⚠️ Erreur chargement simulations:", err.message);
+      }
     } catch (error) {
       console.error("❌ Erreur chargement données finance:", error);
       toast({
@@ -552,7 +572,24 @@ export const useFinanceData = (currentUser = null) => {
         if (!res.ok) throw new Error("Erreur création opération programmée");
 
         const data = await res.json();
-        setScheduledOperations([...scheduledOperations, data]);
+        
+        // Recharger les opérations programmées depuis l'API
+        try {
+          const schedRes = await fetch(`${API_BASE}/api/finance/scheduled-operations`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          });
+          if (schedRes.ok) {
+            const schedData = await schedRes.json();
+            setScheduledOperations(Array.isArray(schedData) ? schedData : schedData.scheduledOperations || []);
+          }
+        } catch (err) {
+          console.warn("⚠️ Erreur rechargement opérations programmées:", err.message);
+          // Fallback: au moins ajouter l'objet créé localement
+          setScheduledOperations(prev => [...prev, data]);
+        }
+        
         toast({
           title: "Succès",
           description: "Opération programmée créée",
@@ -570,7 +607,7 @@ export const useFinanceData = (currentUser = null) => {
         setLoading(false);
       }
     },
-    [scheduledOperations, toast]
+    [toast]
   );
 
   // Supprimer une opération programmée
@@ -593,9 +630,23 @@ export const useFinanceData = (currentUser = null) => {
 
         if (!res.ok) throw new Error("Erreur suppression");
 
-        setScheduledOperations(
-          scheduledOperations.filter(op => op.id !== operationId)
-        );
+        // Recharger les opérations programmées depuis l'API
+        try {
+          const schedRes = await fetch(`${API_BASE}/api/finance/scheduled-operations`, {
+            headers: {
+              Authorization: `Bearer ${localStorage.getItem("token")}`
+            }
+          });
+          if (schedRes.ok) {
+            const schedData = await schedRes.json();
+            setScheduledOperations(Array.isArray(schedData) ? schedData : schedData.scheduledOperations || []);
+          }
+        } catch (err) {
+          console.warn("⚠️ Erreur rechargement opérations programmées:", err.message);
+          // Fallback: au moins supprimer localement
+          setScheduledOperations(prev => prev.filter(op => op.id !== operationId));
+        }
+        
         toast({
           title: "Succès",
           description: "Opération programmée supprimée",
