@@ -83,7 +83,7 @@ const FinanceNew = () => {
             label: "Gestion des notes",
             icon: FiShoppingCart,
             render: () => (
-              <ExpenseReportsManagement currentUser={user} />
+              <ExpenseReportsManagement currentUser={user} userRoles={roles} />
             )
           }
         ]

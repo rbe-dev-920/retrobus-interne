@@ -12,7 +12,7 @@ import { useFinanceData } from "../../hooks/useFinanceData";
  * Accessible UNIQUEMENT au Président, Vice-Président et Trésorier
  * Permet l'approbation et le paiement
  */
-const ExpenseReportsManagement = ({ currentUser }) => {
+const ExpenseReportsManagement = ({ currentUser, userRoles }) => {
   const {
     expenseReports,
     updateExpenseReportStatus,
@@ -22,9 +22,9 @@ const ExpenseReportsManagement = ({ currentUser }) => {
   const [filterStatus, setFilterStatus] = useState("PENDING");
   const toast = useToast();
 
-  // Vérifier les droits d'accès
-  const hasAccess = currentUser?.roles?.some(role =>
-    ["PRESIDENT", "VICE_PRESIDENT", "TRESORIER"].includes(role)
+  // Vérifier les droits d'accès - utiliser userRoles en priorité
+  const hasAccess = (userRoles || currentUser?.roles)?.some(role =>
+    ["ADMIN", "PRESIDENT", "VICE_PRESIDENT", "TRESORIER"].includes(role)
   );
 
   if (!hasAccess) {
